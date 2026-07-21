@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>창원 온라인 — 프로토타입</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+@font-face {
+  font-family: 'DungGeunMo';
+  src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/DungGeunMo.woff') format('woff');
+  font-display: swap;
+}
+:root {
+  --ink: #14181F;
+  --panel: rgba(18, 22, 30, 0.92);
+  --panel-line: #2B3242;
+  --amber: #FFB33C;
+  --mint: #4CD07D;
+  --coral: #FF6B5E;
+  --paper: #F2EFE7;
+  --dim: #8B93A6;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overflow: hidden; background: var(--ink); }
+body { font-family: 'DungGeunMo', 'Galmuri11', 'Courier New', monospace; color: var(--paper); }
+#map { position: fixed; inset: 0; z-index: 0; background: #dfe8dd; }
+.leaflet-container { font-family: inherit; }
+
+/* ---------- 로비 ---------- */
+#lobby {
+  position: fixed; inset: 0; z-index: 100;
+  background: linear-gradient(180deg, #10141C 0%, #1A2130 100%);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+#lobby::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(255,255,255,0.02) 3px 4px);
+}
+.cart {
+  width: 100%; max-width: 400px; position: relative;
+  background: var(--panel); border: 3px solid var(--panel-line);
+  border-radius: 6px; padding: 26px 22px 22px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.04);
+}
+.cart-eyebrow { color: var(--amber); font-size: 12px; letter-spacing: 3px; margin-bottom: 6px; }
+.cart h1 { font-size: 30px; line-height: 1.15; font-weight: 400; margin-bottom: 4px; }
+.cart .sub { color: var(--dim); font-size: 13px; margin-bottom: 22px; }
+.field-label { font-size: 12px; color: var(--dim); margin: 14px 0 6px; letter-spacing: 1px; }
+input[type=text] {
+  width: 100%; background: #0D1017; border: 2px solid var(--panel-line);
+  color: var(--paper); font-family: inherit; font-size: 16px;
+  padding: 10px 12px; border-radius: 4px; outline: none;
+}
+input[type=text]:focus { border-color: var(--amber); }
+.avatars { display: flex; gap: 8px; flex-wrap: wrap; }
+.avatar-btn {
+  width: 44px; height: 44px; font-size: 24px; line-height: 1;
+  background: #0D1017; border: 2px solid var(--panel-line); border-radius: 4px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.avatar-btn.sel { border-color: var(--amber); background: #2A2415; }
+.btn {
+  width: 100%; font-family: inherit; font-size: 16px; letter-spacing: 1px;
+  padding: 13px; border-radius: 4px; border: 2px solid transparent;
+  cursor: pointer; margin-top: 10px;
+}
+.btn:focus-visible, .avatar-btn:focus-visible, input:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.btn-host { background: var(--amber); color: #1A1408; }
+.btn-host:active { transform: translateY(1px); }
+.btn-join { background: transparent; border-color: var(--panel-line); color: var(--paper); }
+.join-row { display: flex; gap: 8px; margin-top: 10px; }
+.join-row input { text-transform: uppercase; letter-spacing: 4px; text-align: center; }
+.join-row .btn { width: 120px; margin-top: 0; flex-shrink: 0; }
+.lobby-msg { min-height: 18px; margin-top: 12px; font-size: 13px; color: var(--coral); }
+.lobby-msg.ok { color: var(--mint); }
+
+/* ---------- HUD ---------- */
+.hud { position: fixed; z-index: 50; }
+#topbar {
+  top: 10px; left: 10px; right: 10px;
+  display: none; justify-content: space-between; gap: 8px; pointer-events: none;
+}
+.chip {
+  pointer-events: auto;
+  background: var(--panel); border: 2px solid var(--panel-line); border-radius: 4px;
+  padding: 8px 12px; font-size: 13px; display: flex; align-items: center; gap: 8px;
+}
+.chip b { color: var(--amber); font-weight: 400; letter-spacing: 2px; }
+.chip button {
+  font-family: inherit; font-size: 11px; background: #0D1017; color: var(--paper);
+  border: 1px solid var(--panel-line); border-radius: 3px; padding: 3px 7px; cursor: pointer;
+}
+#playersChip span { color: var(--mint); }
+
+/* ---------- 채팅 ---------- */
+#chatlog {
+  left: 10px; bottom: 176px; width: min(64vw, 300px); max-height: 30vh;
+  display: none; flex-direction: column; gap: 3px; overflow-y: auto;
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 18%);
+  mask-image: linear-gradient(180deg, transparent, #000 18%);
+  pointer-events: none;
+}
+.chatline {
+  background: rgba(13,16,23,0.8); border-radius: 3px; padding: 4px 8px;
+  font-size: 12px; line-height: 1.5; width: fit-content; max-width: 100%; word-break: break-all;
+}
+.chatline .who { color: var(--amber); }
+.chatline.sys { color: var(--dim); font-style: normal; }
+#chatform {
+  left: 10px; bottom: 132px; width: min(64vw, 300px);
+  display: none; gap: 6px;
+}
+#chatform input { flex: 1; font-size: 13px; padding: 9px 10px; }
+#chatform button {
+  font-family: inherit; background: var(--panel); color: var(--paper);
+  border: 2px solid var(--panel-line); border-radius: 4px; padding: 0 14px; cursor: pointer;
+}
+
+/* ---------- 조작 ---------- */
+#stick {
+  left: 18px; bottom: 18px; width: 104px; height: 104px;
+  border-radius: 50%; background: rgba(13,16,23,0.55);
+  border: 2px solid var(--panel-line); display: none; touch-action: none;
+}
+#knob {
+  position: absolute; left: 50%; top: 50%; width: 46px; height: 46px;
+  border-radius: 50%; background: var(--amber); opacity: 0.9;
+  transform: translate(-50%, -50%);
+}
+#runbtn {
+  right: 18px; bottom: 26px; width: 70px; height: 70px; border-radius: 50%;
+  background: rgba(13,16,23,0.7); border: 2px solid var(--panel-line);
+  color: var(--paper); font-family: inherit; font-size: 13px;
+  display: none; touch-action: none; cursor: pointer;
+}
+#runbtn.on { background: var(--coral); color: #1A0806; border-color: var(--coral); }
+#hint {
+  bottom: 12px; left: 50%; transform: translateX(-50%);
+  color: rgba(20,24,31,0.85); background: rgba(242,239,231,0.75);
+  font-size: 12px; padding: 4px 10px; border-radius: 3px; display: none; white-space: nowrap;
+}
+
+/* ---------- 캐릭터 마커 ---------- */
+.pmark { position: relative; text-align: center; }
+.pmark .face { font-size: 30px; line-height: 1; filter: drop-shadow(0 3px 2px rgba(0,0,0,0.35)); }
+.pmark .tag {
+  position: absolute; left: 50%; top: 100%; transform: translateX(-50%);
+  background: rgba(13,16,23,0.85); color: #fff; font-size: 11px;
+  font-family: 'DungGeunMo', monospace; padding: 1px 6px; border-radius: 3px; white-space: nowrap;
+}
+.pmark .tag.me { background: var(--amber); color: #1A1408; }
+.pmark .bubble {
+  position: absolute; left: 50%; bottom: calc(100% + 6px); transform: translateX(-50%);
+  background: #fff; color: #14181F; font-size: 12px; font-family: 'DungGeunMo', monospace;
+  padding: 4px 8px; border-radius: 6px; white-space: nowrap; max-width: 180px;
+  overflow: hidden; text-overflow: ellipsis;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+.pmark .bubble::after {
+  content: ''; position: absolute; left: 50%; top: 100%; transform: translateX(-50%);
+  border: 5px solid transparent; border-top-color: #fff;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pmark .face { transition: transform 0.1s; }
+}
+@media (min-width: 768px) {
+  #stick, #runbtn { display: none !important; }
+}
+</style>
+</head>
+<body>
+
+<div id="map" role="application" aria-label="창원 지도 게임 화면"></div>
+
+<!-- 로비 -->
+<div id="lobby">
+  <div class="cart">
+    <div class="cart-eyebrow">PROTOTYPE 0.1 — CHANGWON</div>
+    <h1>창원 온라인</h1>
+    <div class="sub">실제 창원 지도 위에서 친구와 만난다</div>
+
+    <div class="field-label">닉네임</div>
+    <input type="text" id="nick" maxlength="10" placeholder="이름 입력" autocomplete="off">
+
+    <div class="field-label">캐릭터</div>
+    <div class="avatars" id="avatars"></div>
+
+    <button class="btn btn-host" id="hostBtn">방 만들기</button>
+
+    <div class="field-label">또는 친구 방에 들어가기</div>
+    <div class="join-row">
+      <input type="text" id="codeInput" maxlength="4" placeholder="코드 4자리" autocomplete="off">
+      <button class="btn btn-join" id="joinBtn">입장</button>
+    </div>
+    <div class="lobby-msg" id="lobbyMsg"></div>
+  </div>
+</div>
+
+<!-- HUD -->
+<div class="hud" id="topbar">
+  <div class="chip" id="roomChip">방 코드 <b id="roomCode">----</b><button id="copyBtn">복사</button></div>
+  <div class="chip" id="playersChip">접속 <span id="pcount">1</span>명</div>
+</div>
+
+<div class="hud" id="chatlog" aria-live="polite"></div>
+<form class="hud" id="chatform" style="display:none">
+  <input type="text" id="chatInput" maxlength="60" placeholder="채팅 (Enter)" autocomplete="off">
+  <button type="submit">전송</button>
+</form>
+
+<div class="hud" id="stick"><div id="knob"></div></div>
+<button class="hud" id="runbtn" type="button">달리기</button>
+<div class="hud" id="hint">이동: 방향키 / WASD · 달리기: Shift</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
+<script>
+/* =========================================================
+   창원 온라인 — 프로토타입
+   실제 OSM 지도(창원) + PeerJS 방코드 멀티 + 채팅
+   ========================================================= */
+
+// ---------- 상수 ----------
+var START = [35.2281, 128.6811];         // 창원시청 일대
+var PREFIX = 'cw2026game-';              // PeerJS 방 ID 접두어
+var WALK = 34, RUN = 90;                 // m/s (게임 속도)
+var SYNC_MS = 100;                       // 위치 동기화 주기
+var EMOJIS = ['🙂','😎','🦊','🐰','🐻','👻','🤖','🐥'];
+var CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+
+// ---------- 상태 ----------
+var me = { id: null, name: '', emoji: EMOJIS[0], lat: START[0], lng: START[1] };
+var players = {};        // id -> {name, emoji, lat, lng}
+var markers = {};        // id -> Leaflet marker
+var bubbles = {};        // id -> {text, until}
+var isHost = false;
+var peer = null;
+var conns = {};          // host용: peerId -> DataConnection
+var hostConn = null;     // guest용
+var keys = {};
+var joyVec = { x: 0, y: 0 };
+var running = false;
+var lastFrame = 0;
+var lastSent = 0;
+
+// ---------- 지도 ----------
+var map = L.map('map', {
+  center: START, zoom: 17, minZoom: 15, maxZoom: 19,
+  dragging: false, zoomControl: true, attributionControl: true
+});
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19,
+  attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
+
+// ---------- 로비 UI ----------
+var $ = function (id) { return document.getElementById(id); };
+var avBox = $('avatars');
+EMOJIS.forEach(function (e, i) {
+  var b = document.createElement('button');
+  b.type = 'button'; b.className = 'avatar-btn' + (i === 0 ? ' sel' : '');
+  b.textContent = e;
+  b.setAttribute('aria-label', '캐릭터 ' + e);
+  b.onclick = function () {
+    avBox.querySelectorAll('.avatar-btn').forEach(function (x) { x.classList.remove('sel'); });
+    b.classList.add('sel'); me.emoji = e;
+  };
+  avBox.appendChild(b);
+});
+
+function lobbyMsg(t, ok) {
+  var el = $('lobbyMsg');
+  el.textContent = t; el.className = 'lobby-msg' + (ok ? ' ok' : '');
+}
+function getNick() {
+  var n = $('nick').value.trim();
+  if (!n) { lobbyMsg('닉네임을 입력하면 시작할 수 있다'); return null; }
+  return n;
+}
+function genCode() {
+  var c = '';
+  for (var i = 0; i < 4; i++) c += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
+  return c;
+}
+
+// ---------- 방 만들기 (호스트) ----------
+$('hostBtn').onclick = function () {
+  var n = getNick(); if (!n) return;
+  me.name = n; me.id = 'host';
+  lobbyMsg('방을 만드는 중…', true);
+  tryHost(0);
+};
+function tryHost(attempt) {
+  if (attempt > 3) { lobbyMsg('방 생성에 실패했다. 잠시 후 다시 시도.'); return; }
+  var code = genCode();
+  var p = new Peer(PREFIX + code);
+  p.on('open', function () {
+    peer = p; isHost = true;
+    players[me.id] = { name: me.name, emoji: me.emoji, lat: me.lat, lng: me.lng };
+    p.on('connection', onGuestConnect);
+    p.on('error', function (err) { console.warn(err); });
+    startGame(code);
+  });
+  p.on('error', function (err) {
+    if (err.type === 'unavailable-id') { p.destroy(); tryHost(attempt + 1); }
+    else { lobbyMsg('연결 실패: ' + err.type); }
+  });
+}
+function onGuestConnect(conn) {
+  conn.on('open', function () {
+    conns[conn.peer] = conn;
+  });
+  conn.on('data', function (d) { handleHostData(conn, d); });
+  conn.on('close', function () {
+    var p = players[conn.peer];
+    delete conns[conn.peer];
+    delete players[conn.peer];
+    removeMarker(conn.peer);
+    if (p) sysMsg(p.name + ' 님이 나갔다');
+    broadcastState();
+  });
+}
+function handleHostData(conn, d) {
+  if (d.type === 'hello') {
+    players[conn.peer] = { name: d.name, emoji: d.emoji, lat: START[0], lng: START[1] };
+    sysMsg(d.name + ' 님이 들어왔다');
+    broadcastState();
+  } else if (d.type === 'move') {
+    var pl = players[conn.peer];
+    if (pl) { pl.lat = d.lat; pl.lng = d.lng; }
+  } else if (d.type === 'chat') {
+    var pl2 = players[conn.peer];
+    if (pl2) relayChat(conn.peer, pl2.name, d.text);
+  }
+}
+function broadcast(obj) {
+  Object.keys(conns).forEach(function (k) {
+    try { conns[k].send(obj); } catch (e) {}
+  });
+}
+function broadcastState() {
+  players[me.id] = { name: me.name, emoji: me.emoji, lat: me.lat, lng: me.lng };
+  broadcast({ type: 'state', players: players });
+  renderPlayers();
+}
+function relayChat(id, name, text) {
+  broadcast({ type: 'chat', id: id, name: name, text: text });
+  showChat(id, name, text);
+}
+
+// ---------- 입장 (게스트) ----------
+$('joinBtn').onclick = function () {
+  var n = getNick(); if (!n) return;
+  var code = $('codeInput').value.trim().toUpperCase();
+  if (code.length !== 4) { lobbyMsg('코드 4자리를 입력'); return; }
+  me.name = n;
+  lobbyMsg('접속 중…', true);
+  var p = new Peer();
+  p.on('open', function (id) {
+    me.id = id; peer = p;
+    var conn = p.connect(PREFIX + code, { reliable: true });
+    var opened = false;
+    conn.on('open', function () {
+      opened = true; hostConn = conn;
+      conn.send({ type: 'hello', name: me.name, emoji: me.emoji });
+      startGame(code);
+    });
+    conn.on('data', handleGuestData);
+    conn.on('close', function () { sysMsg('방장과 연결이 끊겼다. 새로고침 후 다시 접속.'); });
+    p.on('error', function (err) {
+      if (err.type === 'peer-unavailable') lobbyMsg('그 코드의 방을 찾을 수 없다');
+      else if (!opened) lobbyMsg('연결 실패: ' + err.type);
+    });
+    setTimeout(function () { if (!opened && !hostConn) lobbyMsg('응답이 없다. 코드를 확인.'); }, 8000);
+  });
+  p.on('error', function (err) { lobbyMsg('연결 실패: ' + err.type); });
+};
+function handleGuestData(d) {
+  if (d.type === 'state') {
+    var mine = d.players[me.id];
+    players = d.players;
+    if (mine) { mine.lat = me.lat; mine.lng = me.lng; } // 내 위치는 로컬 우선
+    renderPlayers();
+  } else if (d.type === 'chat') {
+    showChat(d.id, d.name, d.text);
+  } else if (d.type === 'sys') {
+    sysMsg(d.text);
+  }
+}
+
+// ---------- 게임 시작 ----------
+function startGame(code) {
+  $('lobby').style.display = 'none';
+  $('topbar').style.display = 'flex';
+  $('chatlog').style.display = 'flex';
+  $('chatform').style.display = 'flex';
+  $('roomCode').textContent = code;
+  var touch = ('ontouchstart' in window) && window.innerWidth < 768;
+  if (touch) { $('stick').style.display = 'block'; $('runbtn').style.display = 'block'; }
+  else { $('hint').style.display = 'block'; setTimeout(function(){ $('hint').style.display='none'; }, 6000); }
+  sysMsg(isHost ? '방을 만들었다. 코드를 친구에게 보내자: ' + code : code + ' 방에 들어왔다');
+  players[me.id] = { name: me.name, emoji: me.emoji, lat: me.lat, lng: me.lng };
+  renderPlayers();
+  requestAnimationFrame(tick);
+  if (isHost) setInterval(broadcastState, SYNC_MS);
+}
+
+// ---------- 이동 ----------
+window.addEventListener('keydown', function (e) {
+  if (document.activeElement === $('chatInput')) return;
+  keys[e.key.toLowerCase()] = true;
+  if (e.key === 'Enter') { $('chatInput').focus(); e.preventDefault(); }
+});
+window.addEventListener('keyup', function (e) { keys[e.key.toLowerCase()] = false; });
+
+function inputVec() {
+  var x = 0, y = 0;
+  if (keys['arrowleft'] || keys['a']) x -= 1;
+  if (keys['arrowright'] || keys['d']) x += 1;
+  if (keys['arrowup'] || keys['w']) y -= 1;
+  if (keys['arrowdown'] || keys['s']) y += 1;
+  x += joyVec.x; y += joyVec.y;
+  var len = Math.hypot(x, y);
+  if (len > 1) { x /= len; y /= len; }
+  return { x: x, y: y };
+}
+function tick(t) {
+  var dt = Math.min((t - lastFrame) / 1000, 0.05);
+  lastFrame = t;
+  var v = inputVec();
+  if (v.x || v.y) {
+    var spd = (keys['shift'] || running) ? RUN : WALK;
+    var mLat = 111320;
+    var mLng = 111320 * Math.cos(me.lat * Math.PI / 180);
+    me.lat += (-v.y * spd * dt) / mLat;   // 화면 위 = 북쪽
+    me.lng += (v.x * spd * dt) / mLng;
+    map.setView([me.lat, me.lng], map.getZoom(), { animate: false });
+    if (players[me.id]) { players[me.id].lat = me.lat; players[me.id].lng = me.lng; }
+    updateMarker(me.id);
+    if (!isHost && hostConn && t - lastSent > SYNC_MS) {
+      lastSent = t;
+      try { hostConn.send({ type: 'move', lat: me.lat, lng: me.lng }); } catch (e) {}
+    }
+  }
+  requestAnimationFrame(tick);
+}
+
+// ---------- 가상 조이스틱 ----------
+(function () {
+  var stick = $('stick'), knob = $('knob'), active = false, cx = 0, cy = 0;
+  function setKnob(dx, dy) {
+    knob.style.transform = 'translate(calc(-50% + ' + dx + 'px), calc(-50% + ' + dy + 'px))';
+  }
+  stick.addEventListener('pointerdown', function (e) {
+    active = true; var r = stick.getBoundingClientRect();
+    cx = r.left + r.width / 2; cy = r.top + r.height / 2;
+    stick.setPointerCapture(e.pointerId); move(e);
+  });
+  function move(e) {
+    if (!active) return;
+    var dx = e.clientX - cx, dy = e.clientY - cy;
+    var len = Math.hypot(dx, dy), max = 34;
+    if (len > max) { dx = dx / len * max; dy = dy / len * max; }
+    setKnob(dx, dy);
+    joyVec.x = dx / max; joyVec.y = dy / max;
+  }
+  stick.addEventListener('pointermove', move);
+  function end() { active = false; joyVec.x = 0; joyVec.y = 0; setKnob(0, 0); }
+  stick.addEventListener('pointerup', end);
+  stick.addEventListener('pointercancel', end);
+  var rb = $('runbtn');
+  rb.addEventListener('pointerdown', function () { running = true; rb.classList.add('on'); });
+  rb.addEventListener('pointerup', function () { running = false; rb.classList.remove('on'); });
+  rb.addEventListener('pointercancel', function () { running = false; rb.classList.remove('on'); });
+})();
+
+// ---------- 마커 ----------
+function markerHtml(id) {
+  var p = players[id]; if (!p) return '';
+  var isMe = id === me.id;
+  var b = bubbles[id];
+  var bubbleHtml = (b && Date.now() < b.until)
+    ? '<div class="bubble">' + escapeHtml(b.text) + '</div>' : '';
+  return '<div class="pmark">' + bubbleHtml +
+    '<div class="face">' + p.emoji + '</div>' +
+    '<div class="tag' + (isMe ? ' me' : '') + '">' + escapeHtml(p.name) + '</div></div>';
+}
+function updateMarker(id) {
+  var p = players[id]; if (!p) return;
+  if (!markers[id]) {
+    markers[id] = L.marker([p.lat, p.lng], {
+      icon: L.divIcon({ className: '', html: markerHtml(id), iconSize: [40, 40], iconAnchor: [20, 24] }),
+      zIndexOffset: id === me.id ? 1000 : 0
+    }).addTo(map);
+  } else {
+    markers[id].setLatLng([p.lat, p.lng]);
+    markers[id].setIcon(L.divIcon({ className: '', html: markerHtml(id), iconSize: [40, 40], iconAnchor: [20, 24] }));
+  }
+}
+function removeMarker(id) {
+  if (markers[id]) { map.removeLayer(markers[id]); delete markers[id]; }
+}
+function renderPlayers() {
+  Object.keys(markers).forEach(function (id) { if (!players[id]) removeMarker(id); });
+  Object.keys(players).forEach(updateMarker);
+  $('pcount').textContent = Object.keys(players).length;
+}
+
+// ---------- 채팅 ----------
+$('chatform').addEventListener('submit', function (e) {
+  e.preventDefault();
+  var t = $('chatInput').value.trim();
+  if (!t) return;
+  $('chatInput').value = '';
+  $('chatInput').blur();
+  if (isHost) relayChat(me.id, me.name, t);
+  else if (hostConn) { try { hostConn.send({ type: 'chat', text: t }); } catch (err) {} }
+});
+function showChat(id, name, text) {
+  bubbles[id] = { text: text, until: Date.now() + 5000 };
+  updateMarker(id);
+  setTimeout(function () { updateMarker(id); }, 5200);
+  addLog('<span class="who">' + escapeHtml(name) + '</span> ' + escapeHtml(text));
+}
+function sysMsg(t) {
+  addLog(escapeHtml(t), true);
+  if (isHost) broadcast({ type: 'sys', text: t });
+}
+function addLog(html, sys) {
+  var log = $('chatlog');
+  var d = document.createElement('div');
+  d.className = 'chatline' + (sys ? ' sys' : '');
+  d.innerHTML = html;
+  log.appendChild(d);
+  while (log.children.length > 40) log.removeChild(log.firstChild);
+  log.scrollTop = log.scrollHeight;
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+
+// ---------- 방 코드 복사 ----------
+$('copyBtn').onclick = function () {
+  var code = $('roomCode').textContent;
+  if (navigator.clipboard) navigator.clipboard.writeText(code);
+  $('copyBtn').textContent = '완료';
+  setTimeout(function () { $('copyBtn').textContent = '복사'; }, 1200);
+};
+</script>
+</body>
+</html>
