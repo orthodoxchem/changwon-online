@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>창원 온라인 — 프로토타입</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<title>창원 온라인 3D — 프로토타입 v2</title>
 <style>
 @font-face {
   font-family: 'DungGeunMo';
@@ -12,543 +11,1107 @@
   font-display: swap;
 }
 :root {
-  --ink: #14181F;
-  --panel: rgba(18, 22, 30, 0.92);
-  --panel-line: #2B3242;
+  --panel: rgba(16, 20, 28, 0.9);
+  --line: #2B3242;
   --amber: #FFB33C;
   --mint: #4CD07D;
   --coral: #FF6B5E;
+  --sky: #5CC8FF;
   --paper: #F2EFE7;
   --dim: #8B93A6;
 }
-* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body { height: 100%; overflow: hidden; background: var(--ink); }
-body { font-family: 'DungGeunMo', 'Galmuri11', 'Courier New', monospace; color: var(--paper); }
-#map { position: fixed; inset: 0; z-index: 0; background: #dfe8dd; }
-.leaflet-container { font-family: inherit; }
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; }
+html, body { height:100%; overflow:hidden; background:#0F131B; }
+body { font-family:'DungGeunMo','Courier New',monospace; color:var(--paper); }
+#c3d { position:fixed; inset:0; display:block; touch-action:none; }
 
-/* ---------- 로비 ---------- */
-#lobby {
-  position: fixed; inset: 0; z-index: 100;
-  background: linear-gradient(180deg, #10141C 0%, #1A2130 100%);
-  display: flex; align-items: center; justify-content: center; padding: 20px;
-}
-#lobby::before {
-  content: ''; position: absolute; inset: 0; pointer-events: none;
-  background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(255,255,255,0.02) 3px 4px);
-}
-.cart {
-  width: 100%; max-width: 400px; position: relative;
-  background: var(--panel); border: 3px solid var(--panel-line);
-  border-radius: 6px; padding: 26px 22px 22px;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.04);
-}
-.cart-eyebrow { color: var(--amber); font-size: 12px; letter-spacing: 3px; margin-bottom: 6px; }
-.cart h1 { font-size: 30px; line-height: 1.15; font-weight: 400; margin-bottom: 4px; }
-.cart .sub { color: var(--dim); font-size: 13px; margin-bottom: 22px; }
-.field-label { font-size: 12px; color: var(--dim); margin: 14px 0 6px; letter-spacing: 1px; }
-input[type=text] {
-  width: 100%; background: #0D1017; border: 2px solid var(--panel-line);
-  color: var(--paper); font-family: inherit; font-size: 16px;
-  padding: 10px 12px; border-radius: 4px; outline: none;
-}
-input[type=text]:focus { border-color: var(--amber); }
-.avatars { display: flex; gap: 8px; flex-wrap: wrap; }
-.avatar-btn {
-  width: 44px; height: 44px; font-size: 24px; line-height: 1;
-  background: #0D1017; border: 2px solid var(--panel-line); border-radius: 4px;
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
-}
-.avatar-btn.sel { border-color: var(--amber); background: #2A2415; }
-.btn {
-  width: 100%; font-family: inherit; font-size: 16px; letter-spacing: 1px;
-  padding: 13px; border-radius: 4px; border: 2px solid transparent;
-  cursor: pointer; margin-top: 10px;
-}
-.btn:focus-visible, .avatar-btn:focus-visible, input:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
-.btn-host { background: var(--amber); color: #1A1408; }
-.btn-host:active { transform: translateY(1px); }
-.btn-join { background: transparent; border-color: var(--panel-line); color: var(--paper); }
-.join-row { display: flex; gap: 8px; margin-top: 10px; }
-.join-row input { text-transform: uppercase; letter-spacing: 4px; text-align: center; }
-.join-row .btn { width: 120px; margin-top: 0; flex-shrink: 0; }
-.lobby-msg { min-height: 18px; margin-top: 12px; font-size: 13px; color: var(--coral); }
-.lobby-msg.ok { color: var(--mint); }
+/* 로비 */
+#lobby { position:fixed; inset:0; z-index:100; background:linear-gradient(180deg,#10141C,#1A2130);
+  display:flex; align-items:center; justify-content:center; padding:16px; overflow:auto; }
+.cart { width:100%; max-width:420px; background:var(--panel); border:3px solid var(--line);
+  border-radius:6px; padding:22px 20px; }
+.cart-eyebrow { color:var(--amber); font-size:11px; letter-spacing:3px; margin-bottom:5px; }
+.cart h1 { font-size:26px; font-weight:400; }
+.cart .sub { color:var(--dim); font-size:12px; margin:4px 0 16px; line-height:1.6; }
+.flabel { font-size:11px; color:var(--dim); margin:12px 0 5px; letter-spacing:1px; }
+input[type=text], select { width:100%; background:#0D1017; border:2px solid var(--line);
+  color:var(--paper); font-family:inherit; font-size:15px; padding:9px 11px; border-radius:4px; outline:none; }
+input:focus, select:focus { border-color:var(--amber); }
+.avatars { display:flex; gap:7px; flex-wrap:wrap; }
+.avbtn { width:40px; height:40px; font-size:22px; background:#0D1017; border:2px solid var(--line);
+  border-radius:4px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.avbtn.sel { border-color:var(--amber); background:#2A2415; }
+.btn { width:100%; font-family:inherit; font-size:15px; letter-spacing:1px; padding:12px;
+  border-radius:4px; border:2px solid transparent; cursor:pointer; margin-top:9px; }
+.btn-host { background:var(--amber); color:#1A1408; }
+.btn-join { background:transparent; border-color:var(--line); color:var(--paper); }
+.joinrow { display:flex; gap:7px; margin-top:9px; }
+.joinrow input { text-transform:uppercase; letter-spacing:4px; text-align:center; }
+.joinrow .btn { width:110px; margin-top:0; flex-shrink:0; }
+.lmsg { min-height:16px; margin-top:10px; font-size:12px; color:var(--coral); }
+.lmsg.ok { color:var(--mint); }
+.help { margin-top:14px; border-top:1px dashed var(--line); padding-top:10px;
+  font-size:11px; color:var(--dim); line-height:1.8; }
 
-/* ---------- HUD ---------- */
-.hud { position: fixed; z-index: 50; }
-#topbar {
-  top: 10px; left: 10px; right: 10px;
-  display: none; justify-content: space-between; gap: 8px; pointer-events: none;
-}
-.chip {
-  pointer-events: auto;
-  background: var(--panel); border: 2px solid var(--panel-line); border-radius: 4px;
-  padding: 8px 12px; font-size: 13px; display: flex; align-items: center; gap: 8px;
-}
-.chip b { color: var(--amber); font-weight: 400; letter-spacing: 2px; }
-.chip button {
-  font-family: inherit; font-size: 11px; background: #0D1017; color: var(--paper);
-  border: 1px solid var(--panel-line); border-radius: 3px; padding: 3px 7px; cursor: pointer;
-}
-#playersChip span { color: var(--mint); }
+/* 로딩 */
+#loadov { position:fixed; inset:0; z-index:90; background:#10141C; display:none;
+  align-items:center; justify-content:center; flex-direction:column; gap:14px; }
+#loadov .big { font-size:20px; color:var(--amber); }
+#loadov .small { font-size:12px; color:var(--dim); }
 
-/* ---------- 채팅 ---------- */
-#chatlog {
-  left: 10px; bottom: 176px; width: min(64vw, 300px); max-height: 30vh;
-  display: none; flex-direction: column; gap: 3px; overflow-y: auto;
-  -webkit-mask-image: linear-gradient(180deg, transparent, #000 18%);
-  mask-image: linear-gradient(180deg, transparent, #000 18%);
-  pointer-events: none;
-}
-.chatline {
-  background: rgba(13,16,23,0.8); border-radius: 3px; padding: 4px 8px;
-  font-size: 12px; line-height: 1.5; width: fit-content; max-width: 100%; word-break: break-all;
-}
-.chatline .who { color: var(--amber); }
-.chatline.sys { color: var(--dim); font-style: normal; }
-#chatform {
-  left: 10px; bottom: 132px; width: min(64vw, 300px);
-  display: none; gap: 6px;
-}
-#chatform input { flex: 1; font-size: 13px; padding: 9px 10px; }
-#chatform button {
-  font-family: inherit; background: var(--panel); color: var(--paper);
-  border: 2px solid var(--panel-line); border-radius: 4px; padding: 0 14px; cursor: pointer;
-}
+/* HUD */
+.hud { position:fixed; z-index:50; }
+#topL { top:8px; left:8px; display:none; flex-direction:column; gap:5px; }
+#topR { top:8px; right:8px; display:none; flex-direction:column; gap:5px; align-items:flex-end; }
+.chip { background:var(--panel); border:2px solid var(--line); border-radius:4px;
+  padding:6px 10px; font-size:12px; display:flex; align-items:center; gap:7px; width:fit-content; }
+.chip b { color:var(--amber); font-weight:400; letter-spacing:2px; }
+.chip button { font-family:inherit; font-size:10px; background:#0D1017; color:var(--paper);
+  border:1px solid var(--line); border-radius:3px; padding:2px 6px; cursor:pointer; }
+.bar { width:150px; height:12px; background:#0D1017; border:1px solid var(--line);
+  border-radius:2px; overflow:hidden; position:relative; }
+.bar i { position:absolute; inset:0; transform-origin:left; display:block; }
+#hpbar i { background:linear-gradient(90deg,#E85D50,#FF6B5E); }
+#mpbar i { background:linear-gradient(90deg,#3D9BD9,#5CC8FF); }
+#xpbar { width:150px; height:5px; }
+#xpbar i { background:var(--mint); }
+.bar span { position:absolute; inset:0; font-size:9px; text-align:center; line-height:12px;
+  color:#fff; text-shadow:0 1px 1px #000; }
 
-/* ---------- 조작 ---------- */
-#stick {
-  left: 18px; bottom: 18px; width: 104px; height: 104px;
-  border-radius: 50%; background: rgba(13,16,23,0.55);
-  border: 2px solid var(--panel-line); display: none; touch-action: none;
-}
-#knob {
-  position: absolute; left: 50%; top: 50%; width: 46px; height: 46px;
-  border-radius: 50%; background: var(--amber); opacity: 0.9;
-  transform: translate(-50%, -50%);
-}
-#runbtn {
-  right: 18px; bottom: 26px; width: 70px; height: 70px; border-radius: 50%;
-  background: rgba(13,16,23,0.7); border: 2px solid var(--panel-line);
-  color: var(--paper); font-family: inherit; font-size: 13px;
-  display: none; touch-action: none; cursor: pointer;
-}
-#runbtn.on { background: var(--coral); color: #1A0806; border-color: var(--coral); }
-#hint {
-  bottom: 12px; left: 50%; transform: translateX(-50%);
-  color: rgba(20,24,31,0.85); background: rgba(242,239,231,0.75);
-  font-size: 12px; padding: 4px 10px; border-radius: 3px; display: none; white-space: nowrap;
-}
+/* 채팅 */
+#chatlog { left:8px; bottom:150px; width:min(60vw,290px); max-height:26vh; display:none;
+  flex-direction:column; gap:3px; overflow-y:auto; pointer-events:none;
+  -webkit-mask-image:linear-gradient(180deg,transparent,#000 18%); mask-image:linear-gradient(180deg,transparent,#000 18%); }
+.cl { background:rgba(13,16,23,0.75); border-radius:3px; padding:3px 7px; font-size:11px;
+  line-height:1.5; width:fit-content; max-width:100%; word-break:break-all; }
+.cl .who { color:var(--amber); }
+.cl.sys { color:var(--dim); }
+.cl.kill { color:var(--coral); }
+.cl.gain { color:var(--mint); }
+#chatform { left:8px; bottom:112px; width:min(60vw,290px); display:none; gap:5px; }
+#chatform input { flex:1; font-size:12px; padding:8px 9px; }
+#chatform button { font-family:inherit; background:var(--panel); color:var(--paper);
+  border:2px solid var(--line); border-radius:4px; padding:0 12px; cursor:pointer; }
 
-/* ---------- 캐릭터 마커 ---------- */
-.pmark { position: relative; text-align: center; }
-.pmark .face { font-size: 30px; line-height: 1; filter: drop-shadow(0 3px 2px rgba(0,0,0,0.35)); }
-.pmark .tag {
-  position: absolute; left: 50%; top: 100%; transform: translateX(-50%);
-  background: rgba(13,16,23,0.85); color: #fff; font-size: 11px;
-  font-family: 'DungGeunMo', monospace; padding: 1px 6px; border-radius: 3px; white-space: nowrap;
-}
-.pmark .tag.me { background: var(--amber); color: #1A1408; }
-.pmark .bubble {
-  position: absolute; left: 50%; bottom: calc(100% + 6px); transform: translateX(-50%);
-  background: #fff; color: #14181F; font-size: 12px; font-family: 'DungGeunMo', monospace;
-  padding: 4px 8px; border-radius: 6px; white-space: nowrap; max-width: 180px;
-  overflow: hidden; text-overflow: ellipsis;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-}
-.pmark .bubble::after {
-  content: ''; position: absolute; left: 50%; top: 100%; transform: translateX(-50%);
-  border: 5px solid transparent; border-top-color: #fff;
-}
-@media (prefers-reduced-motion: no-preference) {
-  .pmark .face { transition: transform 0.1s; }
-}
-@media (min-width: 768px) {
-  #stick, #runbtn { display: none !important; }
-}
+/* 조작 (모바일) */
+#stick { left:14px; bottom:14px; width:100px; height:100px; border-radius:50%;
+  background:rgba(13,16,23,0.5); border:2px solid var(--line); display:none; touch-action:none; }
+#knob { position:absolute; left:50%; top:50%; width:44px; height:44px; border-radius:50%;
+  background:var(--amber); opacity:0.9; transform:translate(-50%,-50%); }
+#btns { right:12px; bottom:14px; display:none; grid-template-columns:repeat(2,58px); gap:8px; }
+.abtn { width:58px; height:58px; border-radius:50%; background:rgba(13,16,23,0.72);
+  border:2px solid var(--line); color:var(--paper); font-family:inherit; font-size:11px;
+  touch-action:none; cursor:pointer; }
+.abtn:active { background:var(--amber); color:#1A1408; }
+#hint { bottom:10px; left:50%; transform:translateX(-50%); font-size:11px;
+  background:rgba(242,239,231,0.8); color:#14181F; padding:4px 10px; border-radius:3px;
+  display:none; white-space:nowrap; }
+
+/* 스탯 패널 */
+#statpan { top:50%; left:50%; transform:translate(-50%,-50%); width:min(92vw,340px);
+  background:var(--panel); border:3px solid var(--line); border-radius:6px; padding:18px; display:none; }
+#statpan h2 { font-size:16px; color:var(--amber); font-weight:400; margin-bottom:4px; }
+#statpan .pts { font-size:12px; color:var(--mint); margin-bottom:10px; }
+.srow { display:flex; align-items:center; gap:10px; margin:8px 0; font-size:13px; }
+.srow .nm { width:48px; }
+.srow .vl { width:34px; color:var(--amber); text-align:right; }
+.srow .ds { flex:1; font-size:10px; color:var(--dim); line-height:1.4; }
+.srow button { font-family:inherit; width:30px; height:30px; font-size:16px; background:#0D1017;
+  color:var(--mint); border:2px solid var(--line); border-radius:4px; cursor:pointer; }
+.srow button:disabled { opacity:0.25; }
+#statpan .close { margin-top:12px; width:100%; padding:9px; font-family:inherit;
+  background:transparent; border:2px solid var(--line); color:var(--paper); border-radius:4px; cursor:pointer; }
+#buildhint { font-size:10px; color:var(--dim); margin-top:10px; line-height:1.7; }
+
+/* 사망 */
+#deadov { position:fixed; inset:0; z-index:80; background:rgba(20,8,8,0.75); display:none;
+  align-items:center; justify-content:center; flex-direction:column; gap:10px; }
+#deadov .big { font-size:26px; color:var(--coral); }
+#deadov .small { font-size:13px; color:var(--paper); }
+
+/* 토스트 */
+#toast { top:64px; left:50%; transform:translateX(-50%); background:var(--panel);
+  border:2px solid var(--amber); border-radius:4px; padding:8px 14px; font-size:12px;
+  display:none; max-width:88vw; text-align:center; }
 </style>
 </head>
 <body>
 
-<div id="map" role="application" aria-label="창원 지도 게임 화면"></div>
+<canvas id="c3d"></canvas>
 
 <!-- 로비 -->
 <div id="lobby">
   <div class="cart">
-    <div class="cart-eyebrow">PROTOTYPE 0.1 — CHANGWON</div>
-    <h1>창원 온라인</h1>
-    <div class="sub">실제 창원 지도 위에서 친구와 만난다</div>
+    <div class="cart-eyebrow">PROTOTYPE v2 — 3D CHANGWON</div>
+    <h1>창원 온라인 3D</h1>
+    <div class="sub">실제 창원 건물이 3D로 서 있는 거리. 능력치는 자유 배분 —<br>힘·민첩·지력을 어떻게 찍느냐가 곧 너의 직업이다.</div>
 
-    <div class="field-label">닉네임</div>
-    <input type="text" id="nick" maxlength="10" placeholder="이름 입력" autocomplete="off">
+    <div class="flabel">닉네임</div>
+    <input type="text" id="nick" maxlength="8" placeholder="이름 입력" autocomplete="off">
 
-    <div class="field-label">캐릭터</div>
+    <div class="flabel">캐릭터 색</div>
     <div class="avatars" id="avatars"></div>
 
-    <button class="btn btn-host" id="hostBtn">방 만들기</button>
+    <div class="flabel">시작 지역 (방장 선택)</div>
+    <select id="areaSel">
+      <option value="35.2281,128.6811">창원시청 일대</option>
+      <option value="35.2228,128.6812">상남동</option>
+      <option value="35.2481,128.6976">창원중앙역</option>
+      <option value="35.2036,128.5773">마산 창동거리</option>
+    </select>
 
-    <div class="field-label">또는 친구 방에 들어가기</div>
-    <div class="join-row">
+    <button class="btn btn-host" id="hostBtn">방 만들기</button>
+    <div class="flabel">또는 친구 방에 들어가기</div>
+    <div class="joinrow">
       <input type="text" id="codeInput" maxlength="4" placeholder="코드 4자리" autocomplete="off">
       <button class="btn btn-join" id="joinBtn">입장</button>
     </div>
-    <div class="lobby-msg" id="lobbyMsg"></div>
+    <div class="lmsg" id="lmsg"></div>
+
+    <div class="help">
+      PC 조작 — 이동 WASD · 카메라 Q/E 또는 마우스 드래그 · 공격 J 또는 클릭 ·
+      마법 K · 자전거 B · 능력치 T · 달리기 Shift · 채팅 Enter<br>
+      몹을 사냥해 레벨업, 포인트를 자유롭게 찍어라. PvP 가능(맞으면 아프다).
+      남을 처치하면 이름에 👹(머더러)가 붙는다.
+    </div>
   </div>
 </div>
 
+<!-- 로딩 -->
+<div id="loadov">
+  <div class="big">창원 시내 불러오는 중…</div>
+  <div class="small" id="loadtxt">건물 데이터 요청</div>
+</div>
+
 <!-- HUD -->
-<div class="hud" id="topbar">
-  <div class="chip" id="roomChip">방 코드 <b id="roomCode">----</b><button id="copyBtn">복사</button></div>
-  <div class="chip" id="playersChip">접속 <span id="pcount">1</span>명</div>
+<div class="hud" id="topL">
+  <div class="chip">방 <b id="roomCode">----</b><button id="copyBtn">복사</button> · <span id="pcount">1</span>명</div>
+  <div class="chip" id="areaChip">-</div>
+</div>
+<div class="hud" id="topR">
+  <div class="chip">Lv <b id="lvT">1</b> · <span id="jobT" style="color:var(--sky)">초보자</span></div>
+  <div class="chip"><div class="bar" id="hpbar"><i></i><span id="hpT"></span></div></div>
+  <div class="chip"><div class="bar" id="mpbar"><i></i><span id="mpT"></span></div></div>
+  <div class="chip"><div class="bar" id="xpbar"><i></i></div></div>
+  <div class="chip"><button id="statOpen" style="font-size:11px;padding:4px 8px">능력치 (T)</button></div>
 </div>
 
 <div class="hud" id="chatlog" aria-live="polite"></div>
-<form class="hud" id="chatform" style="display:none">
-  <input type="text" id="chatInput" maxlength="60" placeholder="채팅 (Enter)" autocomplete="off">
-  <button type="submit">전송</button>
-</form>
+<form class="hud" id="chatform"><input type="text" id="chatInput" maxlength="60" placeholder="채팅 (Enter)" autocomplete="off"><button type="submit">전송</button></form>
 
 <div class="hud" id="stick"><div id="knob"></div></div>
-<button class="hud" id="runbtn" type="button">달리기</button>
-<div class="hud" id="hint">이동: 방향키 / WASD · 달리기: Shift</div>
+<div class="hud" id="btns">
+  <button class="abtn" id="bAtk">공격</button>
+  <button class="abtn" id="bSkill">마법</button>
+  <button class="abtn" id="bBike">자전거</button>
+  <button class="abtn" id="bStat">능력치</button>
+</div>
+<div class="hud" id="hint">이동 WASD · 공격 J/클릭 · 마법 K · 자전거 B · 능력치 T</div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<!-- 능력치 -->
+<div class="hud" id="statpan">
+  <h2>능력치</h2>
+  <div class="pts">남은 포인트: <span id="ptsT">0</span></div>
+  <div class="srow"><span class="nm">힘</span><span class="vl" id="strT">5</span>
+    <button id="strP">+</button><span class="ds">근접 피해·최대 체력 증가. 전사의 길.</span></div>
+  <div class="srow"><span class="nm">민첩</span><span class="vl" id="agiT">5</span>
+    <button id="agiP">+</button><span class="ds">이동속도·공격속도 증가. 도적의 길.</span></div>
+  <div class="srow"><span class="nm">지력</span><span class="vl" id="intT">5</span>
+    <button id="intP">+</button><span class="ds">마법 피해·마나·마나회복 증가. 법사의 길.</span></div>
+  <div id="buildhint">조합이 곧 직업이다. 힘+지력 = 마검사, 민첩+지력 = 마탄사수…<br>정해진 틀은 없다. 히든 조합을 찾아라.</div>
+  <button class="close" id="statClose">닫기</button>
+</div>
+
+<!-- 사망 -->
+<div id="deadov"><div class="big">쓰러졌다</div><div class="small" id="deadT">3초 후 부활</div></div>
+<div class="hud" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
 <script>
-/* =========================================================
-   창원 온라인 — 프로토타입
-   실제 OSM 지도(창원) + PeerJS 방코드 멀티 + 채팅
-   ========================================================= */
-
-// ---------- 상수 ----------
-var START = [35.2281, 128.6811];         // 창원시청 일대
-var PREFIX = 'cw2026game-';              // PeerJS 방 ID 접두어
-var WALK = 34, RUN = 90;                 // m/s (게임 속도)
-var SYNC_MS = 100;                       // 위치 동기화 주기
-var EMOJIS = ['🙂','😎','🦊','🐰','🐻','👻','🤖','🐥'];
+/* ==========================================================
+   창원 온라인 3D v2
+   실제 OSM 건물 3D + 자유 능력치 + 전투/PvP/몹 + 자전거 + P2P
+   ========================================================== */
+var PREFIX = 'cw3d2026-';
+var SYNC = 100;
+var COLORS = [0xE8574A, 0x3D9BD9, 0x4CD07D, 0xFFB33C, 0xA06BE0, 0xF06BA8, 0x7A8699, 0x59C2C9];
+var FACES = ['😎','🙂','🦊','🐰','🤖','👻','🐥','🐻'];
 var CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+var MOB_DEF = {
+  slime: { name:'슬라임', hp:40,  dmg:5,  spd:1.6, xp:25, gold:15, color:0x62C462, scale:1 },
+  dog:   { name:'들개',   hp:80,  dmg:10, spd:3.4, xp:45, gold:30, color:0x9A6B3F, scale:1 },
+  thug:  { name:'불량배', hp:150, dmg:16, spd:2.6, xp:80, gold:60, color:0x555C6E, scale:1 }
+};
 
-// ---------- 상태 ----------
-var me = { id: null, name: '', emoji: EMOJIS[0], lat: START[0], lng: START[1] };
-var players = {};        // id -> {name, emoji, lat, lng}
-var markers = {};        // id -> Leaflet marker
-var bubbles = {};        // id -> {text, until}
-var isHost = false;
-var peer = null;
-var conns = {};          // host용: peerId -> DataConnection
-var hostConn = null;     // guest용
-var keys = {};
-var joyVec = { x: 0, y: 0 };
-var running = false;
-var lastFrame = 0;
-var lastSent = 0;
-
-// ---------- 지도 ----------
-var map = L.map('map', {
-  center: START, zoom: 17, minZoom: 15, maxZoom: 19,
-  dragging: false, zoomControl: true, attributionControl: true
-});
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 19,
-  attribution: '&copy; OpenStreetMap contributors'
-}).addTo(map);
-
-// ---------- 로비 UI ----------
+/* ---------- 유틸 ---------- */
 var $ = function (id) { return document.getElementById(id); };
-var avBox = $('avatars');
-EMOJIS.forEach(function (e, i) {
-  var b = document.createElement('button');
-  b.type = 'button'; b.className = 'avatar-btn' + (i === 0 ? ' sel' : '');
-  b.textContent = e;
-  b.setAttribute('aria-label', '캐릭터 ' + e);
-  b.onclick = function () {
-    avBox.querySelectorAll('.avatar-btn').forEach(function (x) { x.classList.remove('sel'); });
-    b.classList.add('sel'); me.emoji = e;
-  };
-  avBox.appendChild(b);
-});
+function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+function dist2(ax, az, bx, bz) { var dx = ax - bx, dz = az - bz; return Math.sqrt(dx * dx + dz * dz); }
+function esc(s) { return String(s).replace(/[&<>"']/g, function (c) {
+  return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]; }); }
 
-function lobbyMsg(t, ok) {
-  var el = $('lobbyMsg');
-  el.textContent = t; el.className = 'lobby-msg' + (ok ? ' ok' : '');
+/* ---------- 상태 ---------- */
+var me = { id:null, name:'', color:0, face:'😎', x:0, z:0, ry:0, bike:false };
+var stats = { lv:1, xp:0, pts:0, str:5, agi:5, int_:5, gold:0, pk:0 };
+var hp = 150, mp = 100;
+var players = {};   // id -> {name,color,face,x,z,ry,hp,maxhp,lv,bike,pk,dead}
+var pMesh = {};     // id -> {grp,body,tag,bar,barBg, tx,tz,try_}
+var mobs = [];      // host: sim. guest: from state
+var mobMesh = [];
+var isHost = false, peer = null, conns = {}, hostConn = null;
+var origin = { lat:35.2281, lng:128.6811 };
+var dead = false, deadUntil = 0, lastAtk = 0, lastBolt = 0, lastMoveSent = 0;
+var joined = false;
+
+function maxHp() { return 100 + stats.str * 10 + stats.lv * 10; }
+function maxMp() { return 50 + stats.int_ * 10; }
+function jobName() {
+  var s = stats.str, a = stats.agi, i = stats.int_;
+  var top = Math.max(s, a, i);
+  if (stats.lv < 3) return '초보자';
+  var hi = [];
+  if (s >= top - 3) hi.push('s'); if (a >= top - 3) hi.push('a'); if (i >= top - 3) hi.push('i');
+  if (hi.length >= 3) return '만능형';
+  if (hi.length === 2) {
+    if (hi.indexOf('s') >= 0 && hi.indexOf('i') >= 0) return '마검사';
+    if (hi.indexOf('a') >= 0 && hi.indexOf('i') >= 0) return '마탄사수';
+    return '검투사';
+  }
+  if (hi[0] === 's') return '전사'; if (hi[0] === 'a') return '무투가'; return '마법사';
 }
+
+/* ---------- 저장 ---------- */
+function save() { try { localStorage.setItem('cw3dsave', JSON.stringify(stats)); } catch (e) {} }
+function load() {
+  try { var s = JSON.parse(localStorage.getItem('cw3dsave'));
+    if (s && s.lv) { stats = s; if (stats.int_ === undefined) stats.int_ = 5; } } catch (e) {}
+}
+load();
+
+/* ---------- THREE 기본 ---------- */
+var renderer = new THREE.WebGLRenderer({ canvas: $('c3d'), antialias:true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+var scene = new THREE.Scene();
+scene.background = new THREE.Color(0xBFD9E8);
+scene.fog = new THREE.Fog(0xBFD9E8, 120, 420);
+var camera = new THREE.PerspectiveCamera(60, 1, 0.1, 900);
+var camYaw = 0, camPitch = 0.32, camDist = 9;
+var hemi = new THREE.HemisphereLight(0xE8F2FF, 0x6B7A5E, 0.95); scene.add(hemi);
+var sun = new THREE.DirectionalLight(0xFFF3D6, 0.85); sun.position.set(80, 140, 60); scene.add(sun);
+var ground = new THREE.Mesh(new THREE.PlaneGeometry(2400, 2400),
+  new THREE.MeshLambertMaterial({ color:0xC7CFB8 }));
+ground.rotation.x = -Math.PI / 2; ground.position.y = -0.05; scene.add(ground);
+function onResize() {
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', onResize); onResize();
+
+/* ---------- 좌표 ---------- */
+function toXZ(lat, lng) {
+  var m = 111320;
+  return { x: (lng - origin.lng) * m * Math.cos(origin.lat * Math.PI / 180),
+           z: -(lat - origin.lat) * m };
+}
+
+/* ---------- OSM 월드 로드 ---------- */
+function mergeGeoms(geoms) {
+  var total = 0;
+  geoms.forEach(function (g) { total += g.attributes.position.count; });
+  var pos = new Float32Array(total * 3), col = new Float32Array(total * 3), off = 0;
+  geoms.forEach(function (g) {
+    pos.set(g.attributes.position.array, off * 3);
+    col.set(g.attributes.color.array, off * 3);
+    off += g.attributes.position.count;
+  });
+  var bg = new THREE.BufferGeometry();
+  bg.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  bg.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  bg.computeVertexNormals();
+  return bg;
+}
+function paint(g, hex) {
+  var c = new THREE.Color(hex), n = g.attributes.position.count;
+  var arr = new Float32Array(n * 3);
+  for (var i = 0; i < n; i++) { arr[i*3] = c.r; arr[i*3+1] = c.g; arr[i*3+2] = c.b; }
+  g.setAttribute('color', new THREE.BufferAttribute(arr, 3));
+  return g;
+}
+var BPAL = [0xD8D3C8, 0xC9C2B4, 0xB9C0C9, 0xCFC5B0, 0xAEB6BF, 0xE0D8CA];
+function buildWorld(osm) {
+  var bGeoms = [], rGeoms = [], nB = 0, nR = 0;
+  osm.elements.forEach(function (el) {
+    if (el.type !== 'way' || !el.geometry) return;
+    if (el.tags && el.tags.building && nB < 450) {
+      nB++;
+      var shape = new THREE.Shape();
+      el.geometry.forEach(function (p, i) {
+        var q = toXZ(p.lat, p.lon);
+        if (i === 0) shape.moveTo(q.x, -q.z); else shape.lineTo(q.x, -q.z);
+      });
+      var lv = el.tags['building:levels'] ? parseFloat(el.tags['building:levels']) : 0;
+      var h = lv > 0 ? lv * 3 : 6 + Math.random() * 16;
+      try {
+        var g = new THREE.ExtrudeGeometry(shape, { depth: h, bevelEnabled: false });
+        g.rotateX(-Math.PI / 2);
+        var base = BPAL[nB % BPAL.length];
+        bGeoms.push(paint(g.toNonIndexed(), base));
+      } catch (e) {}
+    } else if (el.tags && el.tags.highway && nR < 500) {
+      nR++;
+      var w = /motorway|trunk|primary/.test(el.tags.highway) ? 12 :
+              /secondary|tertiary/.test(el.tags.highway) ? 8 :
+              /residential|unclassified|service/.test(el.tags.highway) ? 5 : 2.5;
+      for (var i = 0; i < el.geometry.length - 1; i++) {
+        var a = toXZ(el.geometry[i].lat, el.geometry[i].lon);
+        var b = toXZ(el.geometry[i+1].lat, el.geometry[i+1].lon);
+        var len = dist2(a.x, a.z, b.x, b.z); if (len < 0.5) continue;
+        var g2 = new THREE.PlaneGeometry(len, w);
+        g2.rotateX(-Math.PI / 2);
+        g2.rotateY(-Math.atan2(b.z - a.z, b.x - a.x));
+        g2.translate((a.x + b.x) / 2, 0.02, (a.z + b.z) / 2);
+        rGeoms.push(paint(g2.toNonIndexed(), w > 3 ? 0x565B66 : 0x8E9297));
+      }
+    }
+  });
+  if (bGeoms.length) scene.add(new THREE.Mesh(mergeGeoms(bGeoms),
+    new THREE.MeshLambertMaterial({ vertexColors:true })));
+  if (rGeoms.length) scene.add(new THREE.Mesh(mergeGeoms(rGeoms),
+    new THREE.MeshLambertMaterial({ vertexColors:true })));
+  return nB;
+}
+function buildFallback() {
+  var bGeoms = [];
+  for (var gx = -5; gx <= 5; gx++) for (var gz = -5; gz <= 5; gz++) {
+    if (Math.random() < 0.25) continue;
+    var w = 14 + Math.random() * 12, d = 14 + Math.random() * 12, h = 8 + Math.random() * 24;
+    var g = new THREE.BoxGeometry(w, h, d);
+    g.translate(gx * 42 + (Math.random()*6-3), h / 2, gz * 42 + (Math.random()*6-3));
+    bGeoms.push(paint(g.toNonIndexed(), BPAL[(gx+gz+10) % BPAL.length]));
+  }
+  scene.add(new THREE.Mesh(mergeGeoms(bGeoms), new THREE.MeshLambertMaterial({ vertexColors:true })));
+}
+function loadOSM(cb) {
+  $('loadov').style.display = 'flex';
+  $('loadtxt').textContent = '건물 데이터 요청 중 (수 초 소요)';
+  var q = '[out:json][timeout:25];(way["building"](around:520,' + origin.lat + ',' + origin.lng +
+    ');way["highway"](around:620,' + origin.lat + ',' + origin.lng + '););out geom;';
+  var done = false;
+  var to = setTimeout(function () { if (!done) { done = true; fail(); } }, 20000);
+  function fail() {
+    $('loadtxt').textContent = '실제 지도를 못 불러와서 임시 도시로 시작';
+    buildFallback(); setTimeout(finish, 600);
+  }
+  function finish() { $('loadov').style.display = 'none'; cb(); }
+  fetch('https://overpass-api.de/api/interpreter', {
+    method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' },
+    body:'data=' + encodeURIComponent(q)
+  }).then(function (r) { return r.json(); }).then(function (j) {
+    if (done) return; done = true; clearTimeout(to);
+    $('loadtxt').textContent = '3D 건물 세우는 중';
+    setTimeout(function () {
+      var n = buildWorld(j);
+      if (!n) buildFallback();
+      finish();
+    }, 30);
+  }).catch(function () { if (!done) { done = true; clearTimeout(to); fail(); } });
+}
+
+/* ---------- 캐릭터 메시 ---------- */
+function nameSprite(txt, mur) {
+  var cv = document.createElement('canvas'); cv.width = 256; cv.height = 64;
+  var cx = cv.getContext('2d');
+  cx.font = '28px DungGeunMo, sans-serif'; cx.textAlign = 'center'; cx.textBaseline = 'middle';
+  cx.fillStyle = 'rgba(13,16,23,0.7)';
+  var w = cx.measureText(txt).width + 20;
+  cx.fillRect(128 - w / 2, 12, w, 40);
+  cx.fillStyle = mur ? '#FF6B5E' : '#FFFFFF';
+  cx.fillText(txt, 128, 34);
+  var sp = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: new THREE.CanvasTexture(cv), transparent:true }));
+  sp.scale.set(4.4, 1.1, 1);
+  return sp;
+}
+function makeAvatar(color, face, name, mur) {
+  var grp = new THREE.Group();
+  var body = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.55, 1.5, 10),
+    new THREE.MeshLambertMaterial({ color: color }));
+  body.position.y = 0.95; grp.add(body);
+  var head = new THREE.Mesh(new THREE.SphereGeometry(0.42, 12, 10),
+    new THREE.MeshLambertMaterial({ color: 0xF2D6B3 }));
+  head.position.y = 2.0; grp.add(head);
+  var nose = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.14, 0.3),
+    new THREE.MeshLambertMaterial({ color: 0xD9B48F }));
+  nose.position.set(0, 2.0, 0.42); grp.add(nose);
+  var tag = nameSprite((mur ? '👹 ' : '') + face + ' ' + name, mur);
+  tag.position.y = 3.1; grp.add(tag);
+  var barBg = new THREE.Sprite(new THREE.SpriteMaterial({ color:0x111111, transparent:true, opacity:0.7 }));
+  barBg.scale.set(1.5, 0.16, 1); barBg.position.y = 2.62; grp.add(barBg);
+  var bar = new THREE.Sprite(new THREE.SpriteMaterial({ color:0x4CD07D }));
+  bar.scale.set(1.44, 0.1, 1); bar.position.y = 2.62; grp.add(bar);
+  var wheel = null;
+  scene.add(grp);
+  return { grp:grp, body:body, tag:tag, bar:bar, barBg:barBg, wheel:wheel, tx:0, tz:0, try_:0 };
+}
+function setBar(m, ratio) {
+  ratio = clamp(ratio, 0, 1);
+  m.bar.scale.x = 1.44 * ratio;
+  m.bar.position.x = -(1 - ratio) * 0.72;
+  m.bar.material.color.setHex(ratio > 0.5 ? 0x4CD07D : ratio > 0.25 ? 0xFFB33C : 0xFF6B5E);
+}
+function refreshTag(id) {
+  var p = players[id], m = pMesh[id]; if (!p || !m) return;
+  m.grp.remove(m.tag);
+  m.tag = nameSprite((p.pk > 0 ? '👹 ' : '') + p.face + ' ' + p.name, p.pk > 0);
+  m.tag.position.y = 3.1; m.grp.add(m.tag);
+}
+
+/* ---------- 몹 메시 ---------- */
+function makeMobMesh(type) {
+  var d = MOB_DEF[type], grp = new THREE.Group();
+  var body;
+  if (type === 'slime') {
+    body = new THREE.Mesh(new THREE.SphereGeometry(0.7, 10, 8),
+      new THREE.MeshLambertMaterial({ color: d.color }));
+    body.scale.y = 0.7; body.position.y = 0.5;
+  } else if (type === 'dog') {
+    body = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.7, 0.6),
+      new THREE.MeshLambertMaterial({ color: d.color }));
+    body.position.y = 0.55;
+    var hd = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5),
+      new THREE.MeshLambertMaterial({ color: d.color }));
+    hd.position.set(0.85, 0.85, 0); grp.add(hd);
+  } else {
+    body = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.6, 1.7, 8),
+      new THREE.MeshLambertMaterial({ color: d.color }));
+    body.position.y = 1.0;
+    var hd2 = new THREE.Mesh(new THREE.SphereGeometry(0.4, 10, 8),
+      new THREE.MeshLambertMaterial({ color: 0xC9A88A }));
+    hd2.position.y = 2.1; grp.add(hd2);
+  }
+  grp.add(body);
+  var barBg = new THREE.Sprite(new THREE.SpriteMaterial({ color:0x111111, transparent:true, opacity:0.7 }));
+  barBg.scale.set(1.3, 0.14, 1); barBg.position.y = 2.5; grp.add(barBg);
+  var bar = new THREE.Sprite(new THREE.SpriteMaterial({ color:0xFF6B5E }));
+  bar.scale.set(1.24, 0.09, 1); bar.position.y = 2.5; grp.add(bar);
+  scene.add(grp);
+  return { grp:grp, body:body, bar:bar, tx:0, tz:0 };
+}
+function flash(mesh) {
+  if (!mesh || !mesh.body) return;
+  var mat = mesh.body.material, orig = mat.color.getHex();
+  mat.color.setHex(0xFFFFFF);
+  setTimeout(function () { mat.color.setHex(orig); }, 110);
+}
+function boltFx(x, z, y) {
+  var s = new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 6),
+    new THREE.MeshBasicMaterial({ color:0x5CC8FF, transparent:true, opacity:0.9 }));
+  s.position.set(x, y || 1.4, z); scene.add(s);
+  setTimeout(function () { scene.remove(s); }, 180);
+}
+
+/* ---------- 로비 ---------- */
+var selIdx = 0;
+COLORS.forEach(function (c, i) {
+  var b = document.createElement('button');
+  b.type = 'button'; b.className = 'avbtn' + (i === 0 ? ' sel' : '');
+  b.textContent = FACES[i];
+  b.style.borderBottom = '4px solid #' + ('000000' + c.toString(16)).slice(-6);
+  b.onclick = function () {
+    document.querySelectorAll('.avbtn').forEach(function (x) { x.classList.remove('sel'); });
+    b.classList.add('sel'); selIdx = i;
+  };
+  $('avatars').appendChild(b);
+});
+function lmsg(t, ok) { var e = $('lmsg'); e.textContent = t; e.className = 'lmsg' + (ok ? ' ok' : ''); }
 function getNick() {
   var n = $('nick').value.trim();
-  if (!n) { lobbyMsg('닉네임을 입력하면 시작할 수 있다'); return null; }
+  if (!n) { lmsg('닉네임을 입력하면 시작할 수 있다'); return null; }
   return n;
 }
 function genCode() {
-  var c = '';
-  for (var i = 0; i < 4; i++) c += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
+  var c = ''; for (var i = 0; i < 4; i++) c += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
   return c;
 }
 
-// ---------- 방 만들기 (호스트) ----------
+/* ---------- 호스트 ---------- */
 $('hostBtn').onclick = function () {
   var n = getNick(); if (!n) return;
-  me.name = n; me.id = 'host';
-  lobbyMsg('방을 만드는 중…', true);
+  me.name = n; me.id = 'host'; me.color = COLORS[selIdx]; me.face = FACES[selIdx];
+  var a = $('areaSel').value.split(',');
+  origin = { lat: parseFloat(a[0]), lng: parseFloat(a[1]) };
+  lmsg('방을 만드는 중…', true);
   tryHost(0);
 };
-function tryHost(attempt) {
-  if (attempt > 3) { lobbyMsg('방 생성에 실패했다. 잠시 후 다시 시도.'); return; }
+function tryHost(att) {
+  if (att > 3) { lmsg('방 생성 실패. 잠시 후 다시.'); return; }
   var code = genCode();
   var p = new Peer(PREFIX + code);
   p.on('open', function () {
     peer = p; isHost = true;
-    players[me.id] = { name: me.name, emoji: me.emoji, lat: me.lat, lng: me.lng };
-    p.on('connection', onGuestConnect);
-    p.on('error', function (err) { console.warn(err); });
-    startGame(code);
+    p.on('connection', onGuest);
+    enterWorld(code);
   });
   p.on('error', function (err) {
-    if (err.type === 'unavailable-id') { p.destroy(); tryHost(attempt + 1); }
-    else { lobbyMsg('연결 실패: ' + err.type); }
+    if (err.type === 'unavailable-id') { p.destroy(); tryHost(att + 1); }
+    else if (!joined) lmsg('연결 실패: ' + err.type);
   });
 }
-function onGuestConnect(conn) {
+function onGuest(conn) {
   conn.on('open', function () {
     conns[conn.peer] = conn;
+    conn.send({ type:'world', lat:origin.lat, lng:origin.lng });
   });
-  conn.on('data', function (d) { handleHostData(conn, d); });
+  conn.on('data', function (d) { hostData(conn, d); });
   conn.on('close', function () {
-    var p = players[conn.peer];
-    delete conns[conn.peer];
-    delete players[conn.peer];
-    removeMarker(conn.peer);
-    if (p) sysMsg(p.name + ' 님이 나갔다');
-    broadcastState();
+    var pl = players[conn.peer];
+    delete conns[conn.peer]; delete players[conn.peer];
+    if (pMesh[conn.peer]) { scene.remove(pMesh[conn.peer].grp); delete pMesh[conn.peer]; }
+    if (pl) sysMsg(pl.name + ' 님이 나갔다');
   });
 }
-function handleHostData(conn, d) {
+function hostData(conn, d) {
+  var id = conn.peer;
   if (d.type === 'hello') {
-    players[conn.peer] = { name: d.name, emoji: d.emoji, lat: START[0], lng: START[1] };
-    sysMsg(d.name + ' 님이 들어왔다');
-    broadcastState();
+    players[id] = { name:d.name, color:d.color, face:d.face, x:0, z:0, ry:0,
+      hp:d.maxhp, maxhp:d.maxhp, lv:d.lv, bike:false, pk:0, dead:false };
+    sysMsg(d.name + ' 님이 접속했다');
   } else if (d.type === 'move') {
-    var pl = players[conn.peer];
-    if (pl) { pl.lat = d.lat; pl.lng = d.lng; }
+    var pl = players[id]; if (!pl) return;
+    pl.x = d.x; pl.z = d.z; pl.ry = d.ry; pl.bike = d.bike; pl.lv = d.lv; pl.maxhp = d.maxhp;
+    if (pl.hp > pl.maxhp) pl.hp = pl.maxhp;
+  } else if (d.type === 'atk') {
+    applyAttack(id, d);
+  } else if (d.type === 'respawn') {
+    var pl2 = players[id]; if (pl2) { pl2.hp = pl2.maxhp; pl2.dead = false; }
   } else if (d.type === 'chat') {
-    var pl2 = players[conn.peer];
-    if (pl2) relayChat(conn.peer, pl2.name, d.text);
+    var pl3 = players[id]; if (pl3) relayChat(pl3.name, d.text);
   }
 }
-function broadcast(obj) {
-  Object.keys(conns).forEach(function (k) {
-    try { conns[k].send(obj); } catch (e) {}
-  });
+function myState() {
+  return { name:me.name, color:me.color, face:me.face, x:me.x, z:me.z, ry:me.ry,
+    hp:hp, maxhp:maxHp(), lv:stats.lv, bike:me.bike, pk:stats.pk, dead:dead };
 }
-function broadcastState() {
-  players[me.id] = { name: me.name, emoji: me.emoji, lat: me.lat, lng: me.lng };
-  broadcast({ type: 'state', players: players });
-  renderPlayers();
-}
-function relayChat(id, name, text) {
-  broadcast({ type: 'chat', id: id, name: name, text: text });
-  showChat(id, name, text);
+function broadcast(o) {
+  Object.keys(conns).forEach(function (k) { try { conns[k].send(o); } catch (e) {} });
 }
 
-// ---------- 입장 (게스트) ----------
+/* 호스트 전투 판정 */
+function attackerPos(id) {
+  if (id === 'host') return { x:me.x, z:me.z };
+  var p = players[id]; return p ? { x:p.x, z:p.z } : null;
+}
+function applyAttack(fromId, d) {
+  var ap = attackerPos(fromId); if (!ap) return;
+  var range = d.kind === 'bolt' ? 24 : 4.2;
+  if (d.tt === 'mob') {
+    var mob = mobs[d.i];
+    if (!mob || mob.hp <= 0) return;
+    if (dist2(ap.x, ap.z, mob.x, mob.z) > range) return;
+    mob.hp -= d.dmg;
+    broadcast({ type:'hitfx', tt:'mob', i:d.i, kind:d.kind });
+    hitFxLocal('mob', d.i, d.kind);
+    if (mob.hp <= 0) {
+      mob.hp = 0; mob.deadAt = Date.now();
+      var def = MOB_DEF[mob.type];
+      var msg = { type:'reward', to:fromId, xp:def.xp, gold:def.gold, what:def.name };
+      broadcast(msg); applyReward(msg);
+      killMsg((fromId === 'host' ? me.name : (players[fromId] || {}).name || '?') + ' → ' + def.name + ' 처치');
+    }
+  } else if (d.tt === 'player') {
+    var tid = d.i;
+    if (tid === fromId) return;
+    var tp = tid === 'host' ? { x:me.x, z:me.z, obj:'me' } : players[tid];
+    if (!tp || (tid !== 'host' && tp.dead)) return;
+    if (tid === 'host' && dead) return;
+    if (dist2(ap.x, ap.z, tp.x, tp.z) > range) return;
+    if (tid === 'host') {
+      damageMe(d.dmg, fromId);
+    } else {
+      tp.hp -= d.dmg;
+      broadcast({ type:'hitfx', tt:'player', i:tid, kind:d.kind });
+      hitFxLocal('player', tid, d.kind);
+      if (tp.hp <= 0) { tp.hp = 0; tp.dead = true; onPlayerKilled(tid, fromId); }
+    }
+  }
+}
+function onPlayerKilled(victimId, killerId) {
+  var vn = victimId === 'host' ? me.name : (players[victimId] || {}).name || '?';
+  var kn = killerId === 'host' ? me.name : (players[killerId] || {}).name || '?';
+  if (killerId === 'host') { stats.pk++; save(); }
+  else if (players[killerId]) { players[killerId].pk++; }
+  broadcast({ type:'pk', killer:killerId });
+  killMsg('⚔ ' + kn + ' 님이 ' + vn + ' 님을 쓰러뜨렸다!');
+}
+function damageMe(dmg, byId) {
+  if (dead) return;
+  hp -= dmg;
+  flash(selfMesh);
+  if (hp <= 0) { hp = 0; startDeath(); if (isHost) onPlayerKilled('host', byId); }
+  updHud();
+}
+function hitFxLocal(tt, i, kind) {
+  var m = tt === 'mob' ? mobMesh[i] : (i === me.id ? selfMesh : pMesh[i]);
+  if (m) { flash(m); if (kind === 'bolt') boltFx(m.grp.position.x, m.grp.position.z, 1.4); }
+}
+function applyReward(msg) {
+  if (msg.to !== me.id) return;
+  stats.xp += msg.xp; stats.gold += msg.gold;
+  gainMsg('+' + msg.xp + ' XP, +' + msg.gold + 'G (' + msg.what + ')');
+  var need = xpNeed();
+  while (stats.xp >= need) {
+    stats.xp -= need; stats.lv++; stats.pts += 5;
+    hp = maxHp(); mp = maxMp();
+    gainMsg('레벨 업! Lv ' + stats.lv + ' (+5 포인트)');
+    toast('레벨 업! 능력치(T)에서 포인트를 찍어라');
+    need = xpNeed();
+  }
+  save(); updHud();
+}
+function xpNeed() { return Math.floor(80 * Math.pow(stats.lv, 1.4)); }
+
+/* 호스트 몹 시뮬 */
+function spawnMobs() {
+  var types = ['slime','slime','slime','slime','slime','dog','dog','dog','thug','thug'];
+  for (var i = 0; i < 14; i++) {
+    var t = types[i % types.length];
+    var ang = Math.random() * Math.PI * 2, r = 35 + Math.random() * 160;
+    mobs.push({ type:t, x:Math.cos(ang)*r, z:Math.sin(ang)*r,
+      hp:MOB_DEF[t].hp, maxhp:MOB_DEF[t].hp, atkAt:0, deadAt:0,
+      wx:0, wz:0, wAt:0 });
+  }
+}
+function hostTick() {
+  var now = Date.now();
+  mobs.forEach(function (m, idx) {
+    var def = MOB_DEF[m.type];
+    if (m.hp <= 0) {
+      if (now - m.deadAt > 9000) {
+        var ang = Math.random() * Math.PI * 2, r = 40 + Math.random() * 160;
+        m.x = Math.cos(ang) * r; m.z = Math.sin(ang) * r; m.hp = m.maxhp;
+      }
+      return;
+    }
+    var best = null, bd = 28;
+    var all = [{ id:'host', x:me.x, z:me.z, dead:dead }];
+    Object.keys(players).forEach(function (k) {
+      var p = players[k]; all.push({ id:k, x:p.x, z:p.z, dead:p.dead });
+    });
+    all.forEach(function (p) {
+      if (p.dead) return;
+      var dd = dist2(m.x, m.z, p.x, p.z);
+      if (dd < bd) { bd = dd; best = p; }
+    });
+    if (best) {
+      if (bd > 2.1) {
+        var dx = best.x - m.x, dz = best.z - m.z, l = Math.hypot(dx, dz) || 1;
+        m.x += dx / l * def.spd * (SYNC / 1000);
+        m.z += dz / l * def.spd * (SYNC / 1000);
+      } else if (now - m.atkAt > 1300) {
+        m.atkAt = now;
+        if (best.id === 'host') damageMe(def.dmg, 'mob');
+        else { var pl = players[best.id];
+          if (pl) { pl.hp -= def.dmg;
+            broadcast({ type:'hitfx', tt:'player', i:best.id, kind:'melee' });
+            if (pl.hp <= 0) { pl.hp = 0; pl.dead = true;
+              killMsg(pl.name + ' 님이 ' + def.name + '에게 쓰러졌다'); } } }
+      }
+    } else if (now - m.wAt > 3000) {
+      m.wAt = now;
+      m.wx = m.x + (Math.random() * 16 - 8); m.wz = m.z + (Math.random() * 16 - 8);
+    } else if (m.wx || m.wz) {
+      var dx2 = m.wx - m.x, dz2 = m.wz - m.z, l2 = Math.hypot(dx2, dz2);
+      if (l2 > 0.5) { m.x += dx2 / l2 * 0.8 * (SYNC / 1000); m.z += dz2 / l2 * 0.8 * (SYNC / 1000); }
+    }
+  });
+  players[me.id] = myState();
+  var slim = mobs.map(function (m) { return { t:m.type, x:+m.x.toFixed(1), z:+m.z.toFixed(1), hp:m.hp, mh:m.maxhp }; });
+  broadcast({ type:'state', players:players, mobs:slim });
+  renderRemote(players, slim);
+}
+
+/* ---------- 게스트 ---------- */
 $('joinBtn').onclick = function () {
   var n = getNick(); if (!n) return;
   var code = $('codeInput').value.trim().toUpperCase();
-  if (code.length !== 4) { lobbyMsg('코드 4자리를 입력'); return; }
-  me.name = n;
-  lobbyMsg('접속 중…', true);
+  if (code.length !== 4) { lmsg('코드 4자리를 입력'); return; }
+  me.name = n; me.color = COLORS[selIdx]; me.face = FACES[selIdx];
+  lmsg('접속 중…', true);
   var p = new Peer();
   p.on('open', function (id) {
     me.id = id; peer = p;
-    var conn = p.connect(PREFIX + code, { reliable: true });
+    var conn = p.connect(PREFIX + code, { reliable:true });
     var opened = false;
-    conn.on('open', function () {
-      opened = true; hostConn = conn;
-      conn.send({ type: 'hello', name: me.name, emoji: me.emoji });
-      startGame(code);
-    });
-    conn.on('data', handleGuestData);
-    conn.on('close', function () { sysMsg('방장과 연결이 끊겼다. 새로고침 후 다시 접속.'); });
+    conn.on('open', function () { opened = true; hostConn = conn; });
+    conn.on('data', function (d) { guestData(d, code); });
+    conn.on('close', function () { sysMsg('방장과 연결이 끊겼다. 새로고침 후 재접속.'); });
     p.on('error', function (err) {
-      if (err.type === 'peer-unavailable') lobbyMsg('그 코드의 방을 찾을 수 없다');
-      else if (!opened) lobbyMsg('연결 실패: ' + err.type);
+      if (err.type === 'peer-unavailable') lmsg('그 코드의 방이 없다');
+      else if (!opened) lmsg('연결 실패: ' + err.type);
     });
-    setTimeout(function () { if (!opened && !hostConn) lobbyMsg('응답이 없다. 코드를 확인.'); }, 8000);
+    setTimeout(function () { if (!opened) lmsg('응답이 없다. 코드 확인.'); }, 9000);
   });
-  p.on('error', function (err) { lobbyMsg('연결 실패: ' + err.type); });
+  p.on('error', function (err) { lmsg('연결 실패: ' + err.type); });
 };
-function handleGuestData(d) {
-  if (d.type === 'state') {
+function guestData(d, code) {
+  if (d.type === 'world') {
+    origin = { lat:d.lat, lng:d.lng };
+    enterWorld(code, function () {
+      hostConn.send({ type:'hello', name:me.name, color:me.color, face:me.face,
+        lv:stats.lv, maxhp:maxHp() });
+    });
+  } else if (d.type === 'state') {
     var mine = d.players[me.id];
-    players = d.players;
-    if (mine) { mine.lat = me.lat; mine.lng = me.lng; } // 내 위치는 로컬 우선
-    renderPlayers();
+    if (mine && mine.hp !== undefined) {
+      if (!dead && mine.hp < hp) { flash(selfMesh); }
+      hp = mine.hp;
+      if (mine.dead && !dead) startDeath();
+      updHud();
+    }
+    renderRemote(d.players, d.mobs);
+  } else if (d.type === 'hitfx') {
+    hitFxLocal(d.tt, d.i, d.kind);
+  } else if (d.type === 'reward') {
+    applyReward(d);
+  } else if (d.type === 'pk') {
+    if (d.killer === me.id) { stats.pk++; save(); }
   } else if (d.type === 'chat') {
-    showChat(d.id, d.name, d.text);
+    chatMsg(d.name, d.text);
   } else if (d.type === 'sys') {
-    sysMsg(d.text);
+    addLog(esc(d.text), 'sys');
+  } else if (d.type === 'kill') {
+    addLog(esc(d.text), 'kill');
   }
 }
 
-// ---------- 게임 시작 ----------
-function startGame(code) {
+/* ---------- 월드 진입 ---------- */
+var selfMesh = null;
+function enterWorld(code, after) {
   $('lobby').style.display = 'none';
-  $('topbar').style.display = 'flex';
-  $('chatlog').style.display = 'flex';
-  $('chatform').style.display = 'flex';
-  $('roomCode').textContent = code;
-  var touch = ('ontouchstart' in window) && window.innerWidth < 768;
-  if (touch) { $('stick').style.display = 'block'; $('runbtn').style.display = 'block'; }
-  else { $('hint').style.display = 'block'; setTimeout(function(){ $('hint').style.display='none'; }, 6000); }
-  sysMsg(isHost ? '방을 만들었다. 코드를 친구에게 보내자: ' + code : code + ' 방에 들어왔다');
-  players[me.id] = { name: me.name, emoji: me.emoji, lat: me.lat, lng: me.lng };
-  renderPlayers();
-  requestAnimationFrame(tick);
-  if (isHost) setInterval(broadcastState, SYNC_MS);
+  loadOSM(function () {
+    joined = true;
+    $('topL').style.display = 'flex'; $('topR').style.display = 'flex';
+    $('chatlog').style.display = 'flex'; $('chatform').style.display = 'flex';
+    $('roomCode').textContent = code;
+    var names = { '35.2281':'창원시청', '35.2228':'상남동', '35.2481':'창원중앙역', '35.2036':'마산 창동' };
+    $('areaChip').textContent = names[origin.lat.toFixed(4)] || '창원 어딘가';
+    var touch = ('ontouchstart' in window) && window.innerWidth < 900;
+    if (touch) { $('stick').style.display = 'block'; $('btns').style.display = 'grid'; }
+    else { $('hint').style.display = 'block'; setTimeout(function(){ $('hint').style.display='none'; }, 8000); }
+    hp = maxHp(); mp = maxMp();
+    selfMesh = makeAvatar(me.color, me.face, me.name, stats.pk > 0);
+    if (isHost) {
+      players[me.id] = myState();
+      spawnMobs();
+      setInterval(hostTick, SYNC);
+      sysMsg('방 개설 완료. 코드 ' + code + ' 를 친구에게 보내라');
+    } else {
+      sysMsg(code + ' 방에 들어왔다');
+    }
+    sysMsg('몹을 사냥해서 레벨을 올리고, T키로 능력치를 찍어라');
+    updHud();
+    if (after) after();
+    requestAnimationFrame(frame);
+  });
 }
 
-// ---------- 이동 ----------
+/* ---------- 원격 렌더 ---------- */
+function renderRemote(pls, mbs) {
+  Object.keys(pls).forEach(function (id) {
+    if (id === me.id) return;
+    var p = pls[id];
+    if (!pMesh[id]) {
+      pMesh[id] = makeAvatar(p.color, p.face, p.name, p.pk > 0);
+      pMesh[id].pk = p.pk;
+    }
+    var m = pMesh[id];
+    if (m.pk !== p.pk) { m.pk = p.pk; players[id] = p; refreshTag(id); }
+    m.tx = p.x; m.tz = p.z; m.try_ = p.ry;
+    m.grp.visible = !p.dead;
+    setBar(m, p.hp / (p.maxhp || 1));
+    if (!isHost) players[id] = p;
+  });
+  Object.keys(pMesh).forEach(function (id) {
+    if (!pls[id]) { scene.remove(pMesh[id].grp); delete pMesh[id]; }
+  });
+  var cnt = Object.keys(pls).length; $('pcount').textContent = cnt;
+  if (mbs) {
+    mbs.forEach(function (mb, i) {
+      if (!mobMesh[i]) mobMesh[i] = makeMobMesh(mb.t);
+      var mm = mobMesh[i];
+      mm.tx = mb.x; mm.tz = mb.z;
+      mm.grp.visible = mb.hp > 0;
+      setBar(mm, mb.hp / mb.mh);
+      mm.bar.material.color.setHex(0xFF6B5E);
+    });
+    if (!isHost) mobsView = mbs;
+  }
+}
+var mobsView = [];
+
+/* ---------- 입력 ---------- */
+var keys = {}, joy = { x:0, y:0 }, dragOn = false, dragX = 0;
 window.addEventListener('keydown', function (e) {
-  if (document.activeElement === $('chatInput')) return;
-  keys[e.key.toLowerCase()] = true;
-  if (e.key === 'Enter') { $('chatInput').focus(); e.preventDefault(); }
+  if (document.activeElement === $('chatInput') || document.activeElement === $('nick') ||
+      document.activeElement === $('codeInput')) {
+    return;
+  }
+  var k = e.key.toLowerCase();
+  keys[k] = true;
+  if (k === 'enter') { if (joined) { $('chatInput').focus(); e.preventDefault(); } }
+  if (k === 'j') doMelee();
+  if (k === 'k') doBolt();
+  if (k === 'b') toggleBike();
+  if (k === 't') toggleStats();
 });
 window.addEventListener('keyup', function (e) { keys[e.key.toLowerCase()] = false; });
-
-function inputVec() {
-  var x = 0, y = 0;
-  if (keys['arrowleft'] || keys['a']) x -= 1;
-  if (keys['arrowright'] || keys['d']) x += 1;
-  if (keys['arrowup'] || keys['w']) y -= 1;
-  if (keys['arrowdown'] || keys['s']) y += 1;
-  x += joyVec.x; y += joyVec.y;
-  var len = Math.hypot(x, y);
-  if (len > 1) { x /= len; y /= len; }
-  return { x: x, y: y };
-}
-function tick(t) {
-  var dt = Math.min((t - lastFrame) / 1000, 0.05);
-  lastFrame = t;
-  var v = inputVec();
-  if (v.x || v.y) {
-    var spd = (keys['shift'] || running) ? RUN : WALK;
-    var mLat = 111320;
-    var mLng = 111320 * Math.cos(me.lat * Math.PI / 180);
-    me.lat += (-v.y * spd * dt) / mLat;   // 화면 위 = 북쪽
-    me.lng += (v.x * spd * dt) / mLng;
-    map.setView([me.lat, me.lng], map.getZoom(), { animate: false });
-    if (players[me.id]) { players[me.id].lat = me.lat; players[me.id].lng = me.lng; }
-    updateMarker(me.id);
-    if (!isHost && hostConn && t - lastSent > SYNC_MS) {
-      lastSent = t;
-      try { hostConn.send({ type: 'move', lat: me.lat, lng: me.lng }); } catch (e) {}
-    }
-  }
-  requestAnimationFrame(tick);
-}
-
-// ---------- 가상 조이스틱 ----------
+$('c3d').addEventListener('pointerdown', function (e) {
+  if (e.target !== $('c3d')) return;
+  dragOn = true; dragX = e.clientX;
+});
+window.addEventListener('pointermove', function (e) {
+  if (!dragOn) return;
+  camYaw -= (e.clientX - dragX) * 0.005; dragX = e.clientX;
+});
+window.addEventListener('pointerup', function (e) {
+  if (dragOn && Math.abs(e.clientX - dragX) < 4 && joined &&
+      !('ontouchstart' in window && window.innerWidth < 900)) doMelee();
+  dragOn = false;
+});
 (function () {
-  var stick = $('stick'), knob = $('knob'), active = false, cx = 0, cy = 0;
-  function setKnob(dx, dy) {
-    knob.style.transform = 'translate(calc(-50% + ' + dx + 'px), calc(-50% + ' + dy + 'px))';
-  }
+  var stick = $('stick'), knob = $('knob'), on = false, cx = 0, cy = 0;
   stick.addEventListener('pointerdown', function (e) {
-    active = true; var r = stick.getBoundingClientRect();
+    on = true; var r = stick.getBoundingClientRect();
     cx = r.left + r.width / 2; cy = r.top + r.height / 2;
-    stick.setPointerCapture(e.pointerId); move(e);
+    stick.setPointerCapture(e.pointerId); mv(e); e.stopPropagation();
   });
-  function move(e) {
-    if (!active) return;
-    var dx = e.clientX - cx, dy = e.clientY - cy;
-    var len = Math.hypot(dx, dy), max = 34;
-    if (len > max) { dx = dx / len * max; dy = dy / len * max; }
-    setKnob(dx, dy);
-    joyVec.x = dx / max; joyVec.y = dy / max;
+  function mv(e) {
+    if (!on) return;
+    var dx = e.clientX - cx, dy = e.clientY - cy, l = Math.hypot(dx, dy), mx = 32;
+    if (l > mx) { dx = dx / l * mx; dy = dy / l * mx; }
+    knob.style.transform = 'translate(calc(-50% + ' + dx + 'px), calc(-50% + ' + dy + 'px))';
+    joy.x = dx / mx; joy.y = dy / mx;
   }
-  stick.addEventListener('pointermove', move);
-  function end() { active = false; joyVec.x = 0; joyVec.y = 0; setKnob(0, 0); }
+  stick.addEventListener('pointermove', mv);
+  function end() { on = false; joy.x = 0; joy.y = 0;
+    knob.style.transform = 'translate(-50%,-50%)'; }
   stick.addEventListener('pointerup', end);
   stick.addEventListener('pointercancel', end);
-  var rb = $('runbtn');
-  rb.addEventListener('pointerdown', function () { running = true; rb.classList.add('on'); });
-  rb.addEventListener('pointerup', function () { running = false; rb.classList.remove('on'); });
-  rb.addEventListener('pointercancel', function () { running = false; rb.classList.remove('on'); });
 })();
+$('bAtk').addEventListener('pointerdown', function (e) { e.stopPropagation(); doMelee(); });
+$('bSkill').addEventListener('pointerdown', function (e) { e.stopPropagation(); doBolt(); });
+$('bBike').addEventListener('pointerdown', function (e) { e.stopPropagation(); toggleBike(); });
+$('bStat').addEventListener('pointerdown', function (e) { e.stopPropagation(); toggleStats(); });
 
-// ---------- 마커 ----------
-function markerHtml(id) {
-  var p = players[id]; if (!p) return '';
-  var isMe = id === me.id;
-  var b = bubbles[id];
-  var bubbleHtml = (b && Date.now() < b.until)
-    ? '<div class="bubble">' + escapeHtml(b.text) + '</div>' : '';
-  return '<div class="pmark">' + bubbleHtml +
-    '<div class="face">' + p.emoji + '</div>' +
-    '<div class="tag' + (isMe ? ' me' : '') + '">' + escapeHtml(p.name) + '</div></div>';
-}
-function updateMarker(id) {
-  var p = players[id]; if (!p) return;
-  if (!markers[id]) {
-    markers[id] = L.marker([p.lat, p.lng], {
-      icon: L.divIcon({ className: '', html: markerHtml(id), iconSize: [40, 40], iconAnchor: [20, 24] }),
-      zIndexOffset: id === me.id ? 1000 : 0
-    }).addTo(map);
-  } else {
-    markers[id].setLatLng([p.lat, p.lng]);
-    markers[id].setIcon(L.divIcon({ className: '', html: markerHtml(id), iconSize: [40, 40], iconAnchor: [20, 24] }));
+/* ---------- 전투 (클라) ---------- */
+function findTarget(range) {
+  var fx = Math.sin(camYaw), fz = Math.cos(camYaw);
+  var best = null, bd = range;
+  function consider(tt, i, x, z, aliveHp) {
+    if (aliveHp <= 0) return;
+    var dx = x - me.x, dz = z - me.z, d = Math.hypot(dx, dz);
+    if (d > range || d < 0.1) return;
+    var dot = (dx * -fx + dz * -fz) / d;
+    if (dot < 0.15) return;
+    if (d < bd) { bd = d; best = { tt:tt, i:i, x:x, z:z }; }
   }
+  if (isHost) {
+    mobs.forEach(function (m, i) { consider('mob', i, m.x, m.z, m.hp); });
+  } else {
+    mobsView.forEach(function (m, i) { consider('mob', i, m.x, m.z, m.hp); });
+  }
+  Object.keys(players).forEach(function (id) {
+    if (id === me.id) return;
+    var p = players[id]; if (!p || p.dead) return;
+    consider('player', id, p.x, p.z, p.hp);
+  });
+  return best;
 }
-function removeMarker(id) {
-  if (markers[id]) { map.removeLayer(markers[id]); delete markers[id]; }
+function doMelee() {
+  if (!joined || dead || me.bike) { if (me.bike) toast('자전거에서 내려야 싸울 수 있다 (B)'); return; }
+  var now = Date.now(), cd = Math.max(260, 620 - stats.agi * 14);
+  if (now - lastAtk < cd) return;
+  lastAtk = now;
+  var t = findTarget(4.0); if (!t) return;
+  var dmg = Math.round(8 + stats.str * 2.5 + Math.random() * 4);
+  sendAtk({ type:'atk', kind:'melee', tt:t.tt, i:t.i, dmg:dmg });
 }
-function renderPlayers() {
-  Object.keys(markers).forEach(function (id) { if (!players[id]) removeMarker(id); });
-  Object.keys(players).forEach(updateMarker);
-  $('pcount').textContent = Object.keys(players).length;
+function doBolt() {
+  if (!joined || dead || me.bike) { if (me.bike) toast('자전거에서 내려야 싸울 수 있다 (B)'); return; }
+  var now = Date.now();
+  if (now - lastBolt < 900) return;
+  var cost = 12;
+  if (mp < cost) { toast('마나 부족 (지력을 올리면 마나가 는다)'); return; }
+  var t = findTarget(22); if (!t) { toast('사거리 안에 대상이 없다'); return; }
+  lastBolt = now; mp -= cost;
+  var dmg = Math.round(10 + stats.int_ * 3.5 + Math.random() * 5);
+  boltFx(t.x, t.z, 1.4);
+  sendAtk({ type:'atk', kind:'bolt', tt:t.tt, i:t.i, dmg:dmg });
+  updHud();
+}
+function sendAtk(o) {
+  if (isHost) applyAttack('host', o);
+  else if (hostConn) { try { hostConn.send(o); } catch (e) {} }
+}
+function toggleBike() {
+  if (!joined || dead) return;
+  me.bike = !me.bike;
+  toast(me.bike ? '자전거 탑승 — 속도 2.5배, 전투 불가' : '자전거에서 내렸다');
+  if (selfMesh) selfMesh.body.rotation.x = me.bike ? 0.35 : 0;
 }
 
-// ---------- 채팅 ----------
+/* ---------- 사망/부활 ---------- */
+function startDeath() {
+  dead = true; deadUntil = Date.now() + 3000;
+  $('deadov').style.display = 'flex';
+  if (selfMesh) selfMesh.grp.visible = false;
+  var iv = setInterval(function () {
+    var left = Math.ceil((deadUntil - Date.now()) / 1000);
+    $('deadT').textContent = left > 0 ? left + '초 후 부활' : '부활!';
+    if (Date.now() >= deadUntil) {
+      clearInterval(iv);
+      dead = false; $('deadov').style.display = 'none';
+      me.x = 0; me.z = 0; hp = maxHp(); mp = maxMp();
+      if (selfMesh) selfMesh.grp.visible = true;
+      if (isHost) { /* host state 반영 자동 */ }
+      else if (hostConn) { try { hostConn.send({ type:'respawn' }); } catch (e) {} }
+      updHud();
+    }
+  }, 200);
+}
+
+/* ---------- 스탯 UI ---------- */
+function toggleStats() {
+  var p = $('statpan');
+  p.style.display = p.style.display === 'block' ? 'none' : 'block';
+  updHud();
+}
+$('statOpen').onclick = toggleStats;
+$('statClose').onclick = toggleStats;
+function addStat(k) {
+  if (stats.pts <= 0) return;
+  stats.pts--; stats[k]++;
+  if (k === 'str') hp = Math.min(hp + 10, maxHp());
+  if (k === 'int_') mp = Math.min(mp + 10, maxMp());
+  save(); updHud();
+}
+$('strP').onclick = function () { addStat('str'); };
+$('agiP').onclick = function () { addStat('agi'); };
+$('intP').onclick = function () { addStat('int_'); };
+
+function updHud() {
+  $('lvT').textContent = stats.lv;
+  $('jobT').textContent = jobName() + (stats.pk > 0 ? ' 👹' : '');
+  var hb = $('hpbar').querySelector('i'), mb = $('mpbar').querySelector('i'),
+      xb = $('xpbar').querySelector('i');
+  hb.style.transform = 'scaleX(' + clamp(hp / maxHp(), 0, 1) + ')';
+  mb.style.transform = 'scaleX(' + clamp(mp / maxMp(), 0, 1) + ')';
+  xb.style.transform = 'scaleX(' + clamp(stats.xp / xpNeed(), 0, 1) + ')';
+  $('hpT').textContent = Math.ceil(hp) + ' / ' + maxHp();
+  $('mpT').textContent = Math.floor(mp) + ' / ' + maxMp();
+  $('ptsT').textContent = stats.pts;
+  $('strT').textContent = stats.str; $('agiT').textContent = stats.agi; $('intT').textContent = stats.int_;
+  var dis = stats.pts <= 0;
+  $('strP').disabled = dis; $('agiP').disabled = dis; $('intP').disabled = dis;
+}
+
+/* ---------- 채팅/로그 ---------- */
 $('chatform').addEventListener('submit', function (e) {
   e.preventDefault();
-  var t = $('chatInput').value.trim();
-  if (!t) return;
-  $('chatInput').value = '';
-  $('chatInput').blur();
-  if (isHost) relayChat(me.id, me.name, t);
-  else if (hostConn) { try { hostConn.send({ type: 'chat', text: t }); } catch (err) {} }
+  var t = $('chatInput').value.trim(); if (!t) return;
+  $('chatInput').value = ''; $('chatInput').blur();
+  if (isHost) relayChat(me.name, t);
+  else if (hostConn) { try { hostConn.send({ type:'chat', text:t }); } catch (err) {} }
 });
-function showChat(id, name, text) {
-  bubbles[id] = { text: text, until: Date.now() + 5000 };
-  updateMarker(id);
-  setTimeout(function () { updateMarker(id); }, 5200);
-  addLog('<span class="who">' + escapeHtml(name) + '</span> ' + escapeHtml(text));
+function relayChat(name, text) {
+  broadcast({ type:'chat', name:name, text:text });
+  chatMsg(name, text);
 }
-function sysMsg(t) {
-  addLog(escapeHtml(t), true);
-  if (isHost) broadcast({ type: 'sys', text: t });
+function chatMsg(name, text) {
+  addLog('<span class="who">' + esc(name) + '</span> ' + esc(text), '');
 }
-function addLog(html, sys) {
-  var log = $('chatlog');
-  var d = document.createElement('div');
-  d.className = 'chatline' + (sys ? ' sys' : '');
-  d.innerHTML = html;
+function sysMsg(t) { addLog(esc(t), 'sys'); if (isHost) broadcast({ type:'sys', text:t }); }
+function killMsg(t) { addLog(esc(t), 'kill'); if (isHost) broadcast({ type:'kill', text:t }); }
+function gainMsg(t) { addLog(esc(t), 'gain'); }
+function addLog(html, cls) {
+  var log = $('chatlog'), d = document.createElement('div');
+  d.className = 'cl' + (cls ? ' ' + cls : ''); d.innerHTML = html;
   log.appendChild(d);
   while (log.children.length > 40) log.removeChild(log.firstChild);
   log.scrollTop = log.scrollHeight;
 }
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, function (c) {
-    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-  });
+var toastTo = null;
+function toast(t) {
+  var e = $('toast'); e.textContent = t; e.style.display = 'block';
+  clearTimeout(toastTo);
+  toastTo = setTimeout(function () { e.style.display = 'none'; }, 2600);
 }
-
-// ---------- 방 코드 복사 ----------
 $('copyBtn').onclick = function () {
-  var code = $('roomCode').textContent;
-  if (navigator.clipboard) navigator.clipboard.writeText(code);
+  if (navigator.clipboard) navigator.clipboard.writeText($('roomCode').textContent);
   $('copyBtn').textContent = '완료';
   setTimeout(function () { $('copyBtn').textContent = '복사'; }, 1200);
 };
+
+/* ---------- 메인 루프 ---------- */
+var lastT = 0;
+function frame(t) {
+  var dt = Math.min((t - lastT) / 1000, 0.05); lastT = t;
+  if (keys['q']) camYaw += 1.8 * dt;
+  if (keys['e']) camYaw -= 1.8 * dt;
+  if (!dead) {
+    var ix = 0, iz = 0;
+    if (keys['a'] || keys['arrowleft']) ix -= 1;
+    if (keys['d'] || keys['arrowright']) ix += 1;
+    if (keys['w'] || keys['arrowup']) iz -= 1;
+    if (keys['s'] || keys['arrowdown']) iz += 1;
+    ix += joy.x; iz += joy.y;
+    var il = Math.hypot(ix, iz);
+    if (il > 0.05) {
+      if (il > 1) { ix /= il; iz /= il; }
+      var spd = 5 + stats.agi * 0.15;
+      if (keys['shift']) spd *= 1.6;
+      if (me.bike) spd *= 2.5;
+      var s = Math.sin(camYaw), c = Math.cos(camYaw);
+      var wx = ix * c - iz * s, wz = ix * s + iz * c;
+      me.x += wx * spd * dt; me.z += wz * spd * dt;
+      me.ry = Math.atan2(wx, wz);
+    }
+  }
+  mp = Math.min(maxMp(), mp + (1 + stats.int_ * 0.4) * dt);
+  if (selfMesh) {
+    selfMesh.grp.position.set(me.x, 0, me.z);
+    selfMesh.grp.rotation.y = me.ry;
+    setBar(selfMesh, hp / maxHp());
+  }
+  Object.keys(pMesh).forEach(function (id) {
+    var m = pMesh[id];
+    m.grp.position.x += (m.tx - m.grp.position.x) * 0.25;
+    m.grp.position.z += (m.tz - m.grp.position.z) * 0.25;
+    m.grp.rotation.y = m.try_ || 0;
+  });
+  mobMesh.forEach(function (m) {
+    m.grp.position.x += (m.tx - m.grp.position.x) * 0.25;
+    m.grp.position.z += (m.tz - m.grp.position.z) * 0.25;
+  });
+  camera.position.set(
+    me.x + Math.sin(camYaw) * camDist * Math.cos(camPitch),
+    2 + camDist * Math.sin(camPitch) * 2.2,
+    me.z + Math.cos(camYaw) * camDist * Math.cos(camPitch));
+  camera.lookAt(me.x, 1.6, me.z);
+  renderer.render(scene, camera);
+  if (t - lastMoveSent > SYNC) {
+    lastMoveSent = t;
+    if (!isHost && hostConn) {
+      try { hostConn.send({ type:'move', x:+me.x.toFixed(2), z:+me.z.toFixed(2),
+        ry:+me.ry.toFixed(2), bike:me.bike, lv:stats.lv, maxhp:maxHp() }); } catch (e) {}
+    }
+    var mpEl = $('mpbar').querySelector('i');
+    mpEl.style.transform = 'scaleX(' + clamp(mp / maxMp(), 0, 1) + ')';
+    $('mpT').textContent = Math.floor(mp) + ' / ' + maxMp();
+  }
+  requestAnimationFrame(frame);
+}
 </script>
 </body>
 </html>
